@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>AR Model Viewer with Hotspot Helper</title>
+    <title>AR Cell Model Viewer</title>
 
     <!-- model-viewer web component -->
     <script
@@ -19,7 +19,10 @@
         margin: 0;
         padding: 0;
         overflow: hidden;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: #05070a;
+        color: #f5f5f5;
       }
 
       model-viewer {
@@ -65,6 +68,7 @@
         outline: 1px solid #4285f4;
       }
 
+      /* Hotspots */
       .hotspot {
         border: none;
         padding: 0;
@@ -80,18 +84,20 @@
         gap: 8px;
         padding: 6px 10px;
         border-radius: 999px;
-        background: rgba(0, 0, 0, 0.75);
+        background: rgba(0, 0, 0, 0.78);
         color: #fff;
         font-size: 12px;
         line-height: 1.3;
+        backdrop-filter: blur(6px);
       }
 
       .hotspot-label::before {
         content: "";
-        width: 10px;
-        height: 10px;
+        width: 9px;
+        height: 9px;
         border-radius: 50%;
         background: #4caf50;
+        box-shadow: 0 0 6px rgba(76, 175, 80, 0.8);
       }
 
       .hotspot-description {
@@ -105,12 +111,14 @@
         display: inline;
       }
 
+      /* AR prompt + failure */
       @keyframes circle {
         from {
           transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg);
         }
         to {
-          transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg);
+          transform: translateX(-50%) rotate(360deg) translateX(50px)
+            rotate(-360deg);
         }
       }
 
@@ -151,220 +159,389 @@
         display: block;
       }
 
-      /* Hotspot helper panel */
-      #hotspot-helper {
+      /* Control panel */
+      #hotspot-controls {
         position: fixed;
-        top: 12px;
         right: 12px;
+        top: 12px;
+        width: 320px;
+        max-height: calc(100dvh - 24px);
+        overflow-y: auto;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: rgba(7, 9, 15, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65);
         z-index: 10000;
-        background: rgba(15, 15, 15, 0.9);
-        color: #f5f5f5;
-        padding: 10px 12px;
-        border-radius: 10px;
-        backdrop-filter: blur(12px);
-        max-width: 260px;
-        font-size: 12px;
       }
 
-      #hotspot-helper label {
-        display: block;
+      #hotspot-controls h2 {
+        font-size: 14px;
+        margin: 0 0 4px;
+      }
+
+      #hotspot-controls p {
+        margin: 0 0 10px;
+        font-size: 11px;
+        color: #aaa;
+      }
+
+      .hotspot-panel {
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        padding-top: 8px;
         margin-top: 8px;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        opacity: 0.8;
       }
 
-      #hotspot-helper select,
-      #hotspot-helper input[type="range"] {
+      .hotspot-panel:first-of-type {
+        border-top: none;
+        margin-top: 0;
+        padding-top: 0;
+      }
+
+      .hotspot-panel-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 4px;
+      }
+
+      .hotspot-panel-title span.name {
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .coords {
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+          Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 10px;
+        color: #bbb;
+      }
+
+      .axis-row {
+        display: grid;
+        grid-template-columns: 14px 1fr 40px;
+        gap: 6px;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+
+      .axis-row label {
+        font-size: 11px;
+        color: #ccc;
+      }
+
+      .axis-row input[type="range"] {
         width: 100%;
-        margin-top: 4px;
       }
 
-      #hotspot-helper .value {
-        font-variant-numeric: tabular-nums;
+      .axis-value {
         font-size: 11px;
-        opacity: 0.9;
+        text-align: right;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
       }
     </style>
   </head>
 
   <body>
-    <model-viewer id="cell-viewer"
-                  src="model.glb"
-                  ios-src="model.usdz"
-                  shadow-intensity="1"
-                  ar
-                  camera-controls
-                  touch-action="pan-y"
-                  alt="A 3D cell model with hotspots">
-
+    <model-viewer
+      id="cell-viewer"
+      src="model.glb"
+      ios-src="model.usdz"
+      shadow-intensity="1"
+      ar
+      camera-controls
+      touch-action="pan-y"
+      alt="A 3D cell model with hotspots">
       <!-- AR button -->
-      <button slot="ar-button" id="ar-button">
-        View in your space
-      </button>
+      <button slot="ar-button" id="ar-button">View in your space</button>
 
-      <!-- Example hotspots using your coords -->
-      <button id="hotspot-nucleus"
-              slot="hotspot-nucleus"
-              class="hotspot"
-              data-position="-8.332 1.103 -1.368"
-              data-normal="0.973 -0.164 0.164"
-              data-label="Nucleus">
+      <!-- Nucleus -->
+      <button
+        slot="hotspot-nucleus"
+        class="hotspot"
+        data-position="-8.332 1.103 -1.368"
+        data-normal="0.973 -0.164 0.164"
+        data-visibility-attribute="visible">
         <div class="hotspot-label">
           Nucleus
           <span class="hotspot-description">
-            Contains genetic material and controls cell activities.
+            Contains genetic material and controls cell activity.
           </span>
         </div>
       </button>
 
-      <button id="hotspot-golgi"
-              slot="hotspot-golgi"
-              class="hotspot"
-              data-position="5.767 5.383 3.847"
-              data-normal="-0.679 -0.519 -0.519"
-              data-label="Golgi Complex">
+      <!-- Golgi Complex -->
+      <button
+        slot="hotspot-golgi"
+        class="hotspot"
+        data-position="5.767 5.383 3.847"
+        data-normal="-0.679 -0.519 -0.519"
+        data-visibility-attribute="visible">
         <div class="hotspot-label">
           Golgi Complex
           <span class="hotspot-description">
-            Packages and modifies proteins for transport.
+            Modifies, sorts, and packages proteins.
           </span>
         </div>
       </button>
 
-      <button id="hotspot-mito"
-              slot="hotspot-mito"
-              class="hotspot"
-              data-position="7.916 3.887 0.024"
-              data-normal="-0.842 -0.507 -0.181"
-              data-label="Mitochondrion">
+      <!-- Mitochondrion -->
+      <button
+        slot="hotspot-mito"
+        class="hotspot"
+        data-position="7.916 3.887 0.024"
+        data-normal="-0.842 -0.507 -0.181"
+        data-visibility-attribute="visible">
         <div class="hotspot-label">
           Mitochondrion
           <span class="hotspot-description">
-            Produces ATP, the cell’s usable energy.
+            Produces ATP, the cell's main energy source.
           </span>
         </div>
       </button>
 
-      <!-- AR helper prompt -->
+      <!-- Ribosome -->
+      <button
+        slot="hotspot-ribosome"
+        class="hotspot"
+        data-position="4.136 0.694 -7.623"
+        data-normal="-0.507 -0.181 0.842"
+        data-visibility-attribute="visible">
+        <div class="hotspot-label">
+          Ribosome
+          <span class="hotspot-description">
+            Site of protein synthesis.
+          </span>
+        </div>
+      </button>
+
+      <!-- Primary Granules -->
+      <button
+        slot="hotspot-granules"
+        class="hotspot"
+        data-position="-3.712 -1.263 7.749"
+        data-normal="0.521 0.181 -0.834"
+        data-visibility-attribute="visible">
+        <div class="hotspot-label">
+          Primary Granules
+          <span class="hotspot-description">
+            Contain enzymes used in cellular defense and digestion.
+          </span>
+        </div>
+      </button>
+
+      <!-- AR prompt + tracking warning -->
       <div id="ar-prompt">
         <img src="hand.png" alt="Move phone to find surface" />
       </div>
 
-      <button id="ar-failure">
-        AR is not tracking!
-      </button>
+      <button id="ar-failure">AR is not tracking!</button>
     </model-viewer>
 
-    <!-- Hotspot tuning helper UI -->
-    <div id="hotspot-helper">
-      <div style="font-weight:600;">Hotspot Tuning</div>
+    <!-- Hotspot tuning controls -->
+    <div id="hotspot-controls">
+      <h2>Hotspot Tuner</h2>
+      <p>Drag sliders; hotspots move in real time. Copy coords when satisfied.</p>
 
-      <label for="hotspot-select">Hotspot</label>
-      <select id="hotspot-select"></select>
+      <!-- Each panel binds to a hotspot id via data-hotspot -->
+      <div class="hotspot-panel" data-hotspot="nucleus">
+        <div class="hotspot-panel-title">
+          <span class="name">Nucleus</span>
+          <span class="coords" id="nucleus-coords"></span>
+        </div>
+        <div class="axis-row">
+          <label>X</label>
+          <input type="range" data-axis="x" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="nucleus-x"></span>
+        </div>
+        <div class="axis-row">
+          <label>Y</label>
+          <input type="range" data-axis="y" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="nucleus-y"></span>
+        </div>
+        <div class="axis-row">
+          <label>Z</label>
+          <input type="range" data-axis="z" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="nucleus-z"></span>
+        </div>
+      </div>
 
-      <label for="depth-range">Depth along normal</label>
-      <input id="depth-range" type="range" min="-5" max="5" step="0.05" value="0" />
-      <div class="value">Offset: <span id="depth-value">0.00</span></div>
+      <div class="hotspot-panel" data-hotspot="golgi">
+        <div class="hotspot-panel-title">
+          <span class="name">Golgi Complex</span>
+          <span class="coords" id="golgi-coords"></span>
+        </div>
+        <div class="axis-row">
+          <label>X</label>
+          <input type="range" data-axis="x" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="golgi-x"></span>
+        </div>
+        <div class="axis-row">
+          <label>Y</label>
+          <input type="range" data-axis="y" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="golgi-y"></span>
+        </div>
+        <div class="axis-row">
+          <label>Z</label>
+          <input type="range" data-axis="z" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="golgi-z"></span>
+        </div>
+      </div>
 
-      <label>Current position</label>
-      <div class="value" id="position-readout">x: 0, y: 0, z: 0</div>
+      <div class="hotspot-panel" data-hotspot="mito">
+        <div class="hotspot-panel-title">
+          <span class="name">Mitochondrion</span>
+          <span class="coords" id="mito-coords"></span>
+        </div>
+        <div class="axis-row">
+          <label>X</label>
+          <input type="range" data-axis="x" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="mito-x"></span>
+        </div>
+        <div class="axis-row">
+          <label>Y</label>
+          <input type="range" data-axis="y" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="mito-y"></span>
+        </div>
+        <div class="axis-row">
+          <label>Z</label>
+          <input type="range" data-axis="z" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="mito-z"></span>
+        </div>
+      </div>
+
+      <div class="hotspot-panel" data-hotspot="ribosome">
+        <div class="hotspot-panel-title">
+          <span class="name">Ribosome</span>
+          <span class="coords" id="ribosome-coords"></span>
+        </div>
+        <div class="axis-row">
+          <label>X</label>
+          <input type="range" data-axis="x" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="ribosome-x"></span>
+        </div>
+        <div class="axis-row">
+          <label>Y</label>
+          <input type="range" data-axis="y" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="ribosome-y"></span>
+        </div>
+        <div class="axis-row">
+          <label>Z</label>
+          <input type="range" data-axis="z" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="ribosome-z"></span>
+        </div>
+      </div>
+
+      <div class="hotspot-panel" data-hotspot="granules">
+        <div class="hotspot-panel-title">
+          <span class="name">Primary Granules</span>
+          <span class="coords" id="granules-coords"></span>
+        </div>
+        <div class="axis-row">
+          <label>X</label>
+          <input type="range" data-axis="x" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="granules-x"></span>
+        </div>
+        <div class="axis-row">
+          <label>Y</label>
+          <input type="range" data-axis="y" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="granules-y"></span>
+        </div>
+        <div class="axis-row">
+          <label>Z</label>
+          <input type="range" data-axis="z" min="-15" max="15" step="0.01" />
+          <span class="axis-value" id="granules-z"></span>
+        </div>
+      </div>
     </div>
 
     <script>
-      const modelViewer = document.getElementById("cell-viewer");
+      const modelViewer = document.querySelector("#cell-viewer");
 
-      // Collect hotspots and store base position + normal vectors
-      const hotspots = Array.from(
-        modelViewer.querySelectorAll(".hotspot")
-      ).map((el) => {
-        const id = el.id;
-        const label = el.dataset.label || id;
+      // Initial positions from your raycasts
+      const hotspotConfigs = {
+        nucleus: { x: -8.332, y: 1.103, z: -1.368 },
+        golgi: { x: 5.767, y: 5.383, z: 3.847 },
+        mito: { x: 7.916, y: 3.887, z: 0.024 },
+        ribosome: { x: 4.136, y: 0.694, z: -7.623 },
+        granules: { x: -3.712, y: -1.263, z: 7.749 },
+      };
 
-        const basePos = el
-          .getAttribute("data-position")
-          .split(" ")
-          .map(parseFloat);
-        const normal = el
-          .getAttribute("data-normal")
-          .split(" ")
-          .map(parseFloat);
+      function updateHotspotPosition(id) {
+        const cfg = hotspotConfigs[id];
+        if (!cfg) return;
 
-        return {
-          id,
-          label,
-          element: el,
-          basePos, // original hit on the membrane
-          normal,  // direction we’ll move along
-          offset: 0,
-        };
-      });
-
-      const hotspotSelect = document.getElementById("hotspot-select");
-      const depthRange = document.getElementById("depth-range");
-      const depthValue = document.getElementById("depth-value");
-      const positionReadout = document.getElementById("position-readout");
-
-      // Populate dropdown
-      hotspots.forEach((h, index) => {
-        const opt = document.createElement("option");
-        opt.value = h.id;
-        opt.textContent = h.label;
-        if (index === 0) opt.selected = true;
-        hotspotSelect.appendChild(opt);
-      });
-
-      function getSelectedHotspot() {
-        const id = hotspotSelect.value;
-        return hotspots.find((h) => h.id === id);
-      }
-
-      function updateHotspotPosition(hotspot, offset) {
-        hotspot.offset = offset;
-
-        const [bx, by, bz] = hotspot.basePos;
-        const [nx, ny, nz] = hotspot.normal;
-
-        const x = bx + nx * offset;
-        const y = by + ny * offset;
-        const z = bz + nz * offset;
-
-        const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
-
-        hotspot.element.setAttribute("data-position", posString);
-
-        // Update UI readout
-        positionReadout.textContent = `x: ${x.toFixed(3)}, y: ${y.toFixed(
-          3
-        )}, z: ${z.toFixed(3)}`;
-
-        // Log to console so you can copy final coords
-        console.log(
-          `[${hotspot.label}] offset=${offset.toFixed(
-            2
-          )} → data-position="${posString}"`
+        const hotspotEl = modelViewer.querySelector(
+          `[slot="hotspot-${id}"]`
         );
+        if (!hotspotEl) return;
+
+        const posStr = `${cfg.x.toFixed(3)} ${cfg.y.toFixed(3)} ${cfg.z.toFixed(
+          3
+        )}`;
+        hotspotEl.setAttribute("data-position", posStr);
+
+        const coordsLabel = document.getElementById(`${id}-coords`);
+        if (coordsLabel) coordsLabel.textContent = posStr;
+
+        const axes = ["x", "y", "z"];
+        axes.forEach((axis) => {
+          const valLabel = document.getElementById(`${id}-${axis}`);
+          if (valLabel) valLabel.textContent = cfg[axis].toFixed(2);
+        });
       }
 
-      // Initialize UI with first hotspot
-      const initialHotspot = getSelectedHotspot();
-      if (initialHotspot) {
-        updateHotspotPosition(initialHotspot, 0);
+      function initSliders() {
+        const panels = document.querySelectorAll(".hotspot-panel");
+        panels.forEach((panel) => {
+          const id = panel.dataset.hotspot;
+          const cfg = hotspotConfigs[id];
+          if (!cfg) return;
+
+          const sliders = panel.querySelectorAll('input[type="range"]');
+          sliders.forEach((slider) => {
+            const axis = slider.dataset.axis;
+            slider.value = cfg[axis];
+            slider.addEventListener("input", (e) => {
+              const v = parseFloat(e.target.value);
+              hotspotConfigs[id][axis] = v;
+              updateHotspotPosition(id);
+            });
+          });
+
+          // Initial label update
+          updateHotspotPosition(id);
+        });
       }
 
-      hotspotSelect.addEventListener("change", () => {
-        // Reset slider when switching hotspots, or keep it – your choice
-        depthRange.value = getSelectedHotspot().offset.toString();
-        depthValue.textContent = getSelectedHotspot().offset.toFixed(2);
-        updateHotspotPosition(getSelectedHotspot(), getSelectedHotspot().offset);
+      // Optional: click helper to log raycast hits to DevTools console
+      modelViewer.addEventListener("click", async (event) => {
+        const rect = modelViewer.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const hit = await modelViewer.positionAndNormalFromPoint(x, y);
+        if (hit) {
+          const { position, normal } = hit;
+          console.log(
+            "Hit position:",
+            position.x.toFixed(3),
+            position.y.toFixed(3),
+            position.z.toFixed(3)
+          );
+          console.log(
+            "Hit normal:",
+            normal.x.toFixed(3),
+            normal.y.toFixed(3),
+            normal.z.toFixed(3)
+          );
+        } else {
+          console.log("No hit at that point");
+        }
       });
 
-      depthRange.addEventListener("input", (e) => {
-        const offset = parseFloat(e.target.value);
-        depthValue.textContent = offset.toFixed(2);
-        const hotspot = getSelectedHotspot();
-        updateHotspotPosition(hotspot, offset);
+      window.addEventListener("DOMContentLoaded", () => {
+        initSliders();
       });
     </script>
   </body>
