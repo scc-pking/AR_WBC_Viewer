@@ -26,13 +26,13 @@
         position: fixed;
         inset: 0;
         width: 100vw;
-        height: 100dvh; /* critical for mobile */
-        background-color: #eee;
+        height: 100dvh;
+        background-color: #111;
         overflow: hidden;
       }
 
       #ar-button {
-        position: fixed; /* keeps it on screen without scrolling */
+        position: fixed;
         left: 50%;
         transform: translateX(-50%);
         bottom: calc(env(safe-area-inset-bottom) + 20px);
@@ -41,16 +41,16 @@
         background-color: #fff;
         padding: 0 26px;
         min-width: 220px;
-        height: 48px;              /* larger */
+        height: 48px;
         line-height: 48px;
 
-        font-family: Roboto, "Helvetica Neue", sans-serif;
-        font-size: 16px;           /* larger */
+        font-family: Roboto, Helvetica Neue, sans-serif;
+        font-size: 16px;
         font-weight: 500;
         color: #4285f4;
 
-        border-radius: 24px;       /* proportional to height */
-        border: 1px solid #dadce0;
+        border-radius: 24px;
+        border: 1px solid #DADCE0;
         white-space: nowrap;
       }
 
@@ -64,6 +64,46 @@
 
       #ar-button:focus-visible {
         outline: 1px solid #4285f4;
+      }
+
+      .hotspot {
+        border: none;
+        padding: 0;
+        background: none;
+        cursor: pointer;
+        transform: translate(-50%, -50%); /* center on point */
+      }
+
+      .hotspot-label {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.75);
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.3;
+      }
+
+      .hotspot-label::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #4caf50;
+      }
+
+      .hotspot-description {
+        display: none;
+        margin-left: 4px;
+        font-size: 11px;
+        opacity: 0.9;
+      }
+
+      .hotspot:hover .hotspot-description {
+        display: inline;
       }
 
       @keyframes circle {
@@ -122,27 +162,46 @@
       ar
       camera-controls
       touch-action="pan-y"
-      alt="A 3D model carousel">
+      alt="A 3D model with hotspots">
 
+      <!-- AR button -->
       <button slot="ar-button" id="ar-button">
         View in your space
+      </button>
+
+      <!-- Hotspot #1 -->
+      <button
+        slot="hotspot-1"
+        class="hotspot"
+        data-position="0 0.15 0.2"
+        data-normal="0 1 0"
+        data-visibility-attribute="visible">
+        <div class="hotspot-label">
+          Cell Membrane
+          <span class="hotspot-description">
+            Outer layer that regulates what enters and exits the cell.
+          </span>
+        </div>
+      </button>
+
+      <!-- Hotspot #2 -->
+      <button
+        slot="hotspot-2"
+        class="hotspot"
+        data-position="-0.1 0.05 0"
+        data-normal="0 1 0"
+        data-visibility-attribute="visible">
+        <div class="hotspot-label">
+          Nucleus
+          <span class="hotspot-description">
+            Contains genetic material and controls cell activities.
+          </span>
+        </div>
       </button>
 
       <button id="ar-failure">
         AR is not tracking!
       </button>
     </model-viewer>
-
-    <script type="module">
-      const modelViewer = document.querySelector("model-viewer");
-
-      // Optional: simple AR failure listener (can be removed if you don’t need it)
-      modelViewer.addEventListener("ar-status", (event) => {
-        if (event.detail.status === "failed") {
-          const error = document.querySelector("#ar-failure");
-          error.style.display = "block";
-        }
-      });
-    </script>
   </body>
 </html>
