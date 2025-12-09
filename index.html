@@ -1,123 +1,152 @@
-<model-viewer src="model.glb" ios-src="model.usdz" shadow-intensity="1" ar camera-controls touch-action="pan-y" alt="A 3D model carousel">
-  
-  <button slot="ar-button" id="ar-button">
-    View in your space
-  </button>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AR Model Viewer</title>
 
-  <div id="ar-prompt">
-    <img src="../../assets/hand.png">
-  </div>
+    <!-- model-viewer web component -->
+    <script
+      type="module"
+      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
+    </script>
 
-  <button id="ar-failure">
-    AR is not tracking!
-  </button>
+    <style>
+      /* Hide children until <model-viewer> is defined */
+      :not(:defined) > * {
+        display: none;
+      }
 
- </model-viewer>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
 
-<script type="module">
-  const modelViewer = document.querySelector("model-viewer");
+      model-viewer {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100dvh; /* critical for mobile */
+        background-color: #eee;
+        overflow: hidden;
+      }
 
-  window.switchSrc = (element, name) => {
-    const base = "../../assets/ShopifyModels/" + name;
-    modelViewer.src = base + '.glb';
-    modelViewer.poster = base + '.webp';
-    const slides = document.querySelectorAll(".slide");
-    slides.forEach((element) => {element.classList.remove("selected");});
-    element.classList.add("selected");
-  };
+      #ar-button {
+        position: fixed; /* keeps it on screen without scrolling */
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: calc(env(safe-area-inset-bottom) + 20px);
+        z-index: 9999;
 
-  document.querySelector(".slider").addEventListener('beforexrselect', (ev) => {
-    // Keep slider interactions from affecting the XR scene.
-    ev.preventDefault();
-  });
-</script>
+        background-color: #fff;
+        padding: 0 26px;
+        min-width: 220px;
+        height: 48px;              /* larger */
+        line-height: 48px;
 
-<style>
-  /* This keeps child nodes hidden while the element loads */
-  :not(:defined) > * {
-    display: none;
-  }
+        font-family: Roboto, "Helvetica Neue", sans-serif;
+        font-size: 16px;           /* larger */
+        font-weight: 500;
+        color: #4285f4;
 
-model-viewer {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100dvh; /* critical */
-  background-color: #eee;
-  overflow: hidden;
-}
+        border-radius: 24px;       /* proportional to height */
+        border: 1px solid #dadce0;
+        white-space: nowrap;
+      }
 
-#ar-button {
-  position: fixed; /* critical */
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom) + 20px);
-  z-index: 9999;
+      #ar-button:active {
+        background-color: #e8eaed;
+      }
 
-  background-color: #fff;
-  padding: 0 26px;
-  min-width: 220px;
-  height: 48px;              /* ⬆ larger */
-  line-height: 48px;
+      #ar-button:focus {
+        outline: none;
+      }
 
-  font-family: Roboto, Helvetica Neue, sans-serif;
-  font-size: 16px;           /* ⬆ larger */
-  font-weight: 500;
-  color: #4285f4;
+      #ar-button:focus-visible {
+        outline: 1px solid #4285f4;
+      }
 
-  border-radius: 24px;       /* proportional to height */
-  border: 1px solid #DADCE0;
-  white-space: nowrap;
-}
+      @keyframes circle {
+        from {
+          transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg);
+        }
+        to {
+          transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg);
+        }
+      }
 
-  #ar-button:active {
-    background-color: #E8EAED;
-  }
+      @keyframes elongate {
+        from {
+          transform: translateX(100px);
+        }
+        to {
+          transform: translateX(-100px);
+        }
+      }
 
-  #ar-button:focus {
-    outline: none;
-  }
+      model-viewer > #ar-prompt {
+        position: absolute;
+        left: 50%;
+        bottom: 175px;
+        animation: elongate 2s infinite ease-in-out alternate;
+        display: none;
+      }
 
-  #ar-button:focus-visible {
-    outline: 1px solid #4285f4;
-  }
+      model-viewer[ar-status="session-started"] > #ar-prompt {
+        display: block;
+      }
 
-  @keyframes circle {
-    from { transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg); }
-    to   { transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg); }
-  }
+      model-viewer > #ar-prompt > img {
+        animation: circle 4s linear infinite;
+      }
 
-  @keyframes elongate {
-    from { transform: translateX(100px); }
-    to   { transform: translateX(-100px); }
-  }
+      model-viewer > #ar-failure {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 175px;
+        display: none;
+      }
 
-  model-viewer > #ar-prompt {
-    position: absolute;
-    left: 50%;
-    bottom: 175px;
-    animation: elongate 2s infinite ease-in-out alternate;
-    display: none;
-  }
+      model-viewer[ar-tracking="not-tracking"] > #ar-failure {
+        display: block;
+      }
+    </style>
+  </head>
 
-  model-viewer[ar-status="session-started"] > #ar-prompt {
-    display: block;
-  }
+  <body>
+    <model-viewer
+      src="model.glb"
+      ios-src="model.usdz"
+      shadow-intensity="1"
+      ar
+      camera-controls
+      touch-action="pan-y"
+      alt="A 3D model carousel">
 
-  model-viewer > #ar-prompt > img {
-    animation: circle 4s linear infinite;
-  }
+      <button slot="ar-button" id="ar-button">
+        View in your space
+      </button>
 
-  model-viewer > #ar-failure {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 175px;
-    display: none;
-  }
+      <div id="ar-prompt">
+        <img src="../../assets/hand.png" alt="Move phone prompt" />
+      </div>
 
-  model-viewer[ar-tracking="not-tracking"] > #ar-failure {
-    display: block;
-  }
+      <button id="ar-failure">
+        AR is not tracking!
+      </button>
+    </model-viewer>
 
-</style>
+    <script type="module">
+      const modelViewer = document.querySelector("model-viewer");
+
+      // Optional: simple AR failure listener (can be removed if you don’t need it)
+      modelViewer.addEventListener("ar-status", (event) => {
+        if (event.detail.status === "failed") {
+          const error = document.querySelector("#ar-failure");
+          error.style.display = "block";
+        }
+      });
+    </script>
+  </body>
+</html>
