@@ -290,7 +290,7 @@
         class="hotspot"
         data-id="ribosome"
         data-position="4.136 0.694 -7.623"
-        data-normal="-0.507 -0.181 0.842"
+        data-normal="-1 -0.681 0.342"
         data-visibility-attribute="visible"
       >
         <div class="hotspot-label">
@@ -307,7 +307,7 @@
         class="hotspot"
         data-id="granules"
         data-position="-3.712 -1.263 7.749"
-        data-normal="0.521 0.181 -0.834"
+        data-normal="0 -0.319 -1.334"
         data-visibility-attribute="visible"
       >
         <div class="hotspot-label">
@@ -324,99 +324,5 @@
 
       <button id="ar-failure">AR is not tracking!</button>
     </model-viewer>
-
-    <script>
-      // Small vector helpers
-      function parseVec3(str) {
-        const [x, y, z] = str.split(/\s+/).map(Number);
-        return { x, y, z };
-      }
-
-      function vec3ToStr(v) {
-        return `${v.x.toFixed(3)} ${v.y.toFixed(3)} ${v.z.toFixed(3)}`;
-      }
-
-      function addScaledVec(a, n, s) {
-        return {
-          x: a.x + n.x * s,
-          y: a.y + n.y * s,
-          z: a.z + n.z * s,
-        };
-      }
-
-      window.addEventListener("DOMContentLoaded", () => {
-        const mv = document.getElementById("cellViewer");
-        const hotspotSelect = document.getElementById("hotspotSelect");
-        const offsetSlider = document.getElementById("offsetSlider");
-        const offsetValue = document.getElementById("offsetValue");
-        const coordsOutput = document.getElementById("coords-output");
-
-        // Map of logical IDs → hotspot elements
-        const hotspots = {};
-        mv.querySelectorAll("button.hotspot").forEach((btn) => {
-          const id = btn.dataset.id;
-          if (!id) return;
-          hotspots[id] = btn;
-
-          // Store original/baseline position so offset is relative
-          if (!btn.dataset.basePosition) {
-            btn.dataset.basePosition = btn.dataset.position;
-          }
-        });
-
-        function getActiveHotspot() {
-          const id = hotspotSelect.value;
-          return hotspots[id] || null;
-        }
-
-        function updateActiveHotspotFromSlider() {
-          const hotspot = getActiveHotspot();
-          if (!hotspot) return;
-
-          const offset = parseFloat(offsetSlider.value);
-          offsetValue.textContent = offset.toFixed(1);
-
-          const basePos = parseVec3(hotspot.dataset.basePosition);
-          const normal = parseVec3(hotspot.dataset.normal);
-
-          const newPos = addScaledVec(basePos, normal, offset);
-          hotspot.dataset.position = vec3ToStr(newPos);
-
-          // Ask model-viewer to recalc hotspot placement
-          if (typeof mv.updateHotspot === "function") {
-            mv.updateHotspot({ name: hotspot.getAttribute("slot") });
-          }
-
-          coordsOutput.textContent =
-            `Current hotspot: ${hotspot.dataset.id}\n` +
-            `data-position="${hotspot.dataset.position}"\n` +
-            `data-normal="${hotspot.dataset.normal}"`;
-
-          console.log(
-            `[Hotspot Tuner] ${hotspot.dataset.id} position =>`,
-            hotspot.dataset.position
-          );
-        }
-
-        // Change hotspot target
-        hotspotSelect.addEventListener("change", () => {
-          const hotspot = getActiveHotspot();
-          if (!hotspot) return;
-          // Reset slider to 0 each time you switch
-          offsetSlider.value = "0";
-          offsetValue.textContent = "0.0";
-          coordsOutput.textContent =
-            `Current hotspot: ${hotspot.dataset.id}\n` +
-            `data-position="${hotspot.dataset.position}"\n` +
-            `data-normal="${hotspot.dataset.normal}"`;
-        });
-
-        // Live update on slider drag
-        offsetSlider.addEventListener("input", updateActiveHotspotFromSlider);
-
-        // Initialize panel display
-        hotspotSelect.dispatchEvent(new Event("change"));
-      });
-    </script>
   </body>
 </html>
