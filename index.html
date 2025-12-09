@@ -3,32 +3,113 @@
   <head>
     <meta charset="UTF-8" />
     <title>AR Model Viewer</title>
-    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+    <!-- model-viewer -->
+    <script type="module"
+      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
+    </script>
+
     <style>
+      :not(:defined) > * {
+        display: none;
+      }
+
       body {
         margin: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        background: #111;
+        background: #000;
       }
+
       model-viewer {
         width: 100vw;
         height: 100vh;
+        background-color: #111;
+        overflow: hidden;
+      }
+
+      #ar-button {
+        background-image: url('assets/ic_view_in_ar_new_googblue_48dp.png');
+        background-repeat: no-repeat;
+        background-size: 20px 20px;
+        background-position: 12px 50%;
+        background-color: #fff;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        bottom: 32px;
+        padding: 0 16px 0 40px;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        font-size: 14px;
+        color: #4285f4;
+        height: 36px;
+        line-height: 36px;
+        border-radius: 18px;
+        border: 1px solid #dadce0;
+      }
+
+      #ar-button:active {
+        background-color: #e8eaed;
+      }
+
+      #ar-button:focus {
+        outline: none;
+      }
+
+      #ar-button:focus-visible {
+        outline: 1px solid #4285f4;
+      }
+
+      #ar-prompt {
+        position: absolute;
+        left: 50%;
+        bottom: 88px;
+        transform: translateX(-50%);
+        display: none;
+      }
+
+      model-viewer[ar-status="session-started"] > #ar-prompt {
+        display: block;
       }
     </style>
   </head>
   <body>
     <model-viewer
+      id="viewer"
       src="model.glb"
       ios-src="model.usdz"
+      alt="3D model"
       ar
       ar-modes="webxr scene-viewer quick-look"
+      ar-scale="fixed"
       camera-controls
-      auto-rotate
-      environment-image="neutral"
-      poster="poster.png">
+      touch-action="pan-y"
+      shadow-intensity="1"
+      xr-environment
+      auto-rotate>
+      
+      <!-- Custom AR button -->
+      <button slot="ar-button" id="ar-button">
+        View in your space
+      </button>
+
+      <!-- Little hand prompt while AR is finding the floor -->
+      <div id="ar-prompt">
+        <img src="HAND_PROMPT.png" />
+      </div>
     </model-viewer>
+
+    <script type="module">
+      const mv = document.querySelector('#viewer');
+
+      // Debug: log AR status in DevTools console
+      mv.addEventListener('ar-status', (event) => {
+        console.log('AR status:', event.detail.status);
+      });
+
+      mv.addEventListener('ar-tracking', (event) => {
+        console.log('AR tracking:', event.detail.status);
+      });
+    </script>
   </body>
 </html>
