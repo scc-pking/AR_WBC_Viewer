@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>AR Model Viewer – Cell Hotspots</title>
+    <title>AR Model Viewer with Hotspot Helper</title>
 
     <!-- model-viewer web component -->
     <script
@@ -21,6 +21,7 @@
         overflow: hidden;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
           sans-serif;
+        background: #000;
       }
 
       model-viewer {
@@ -52,7 +53,6 @@
         border-radius: 24px;
         border: 1px solid #dadce0;
         white-space: nowrap;
-        cursor: pointer;
       }
 
       #ar-button:active {
@@ -86,7 +86,6 @@
         color: #fff;
         font-size: 12px;
         line-height: 1.3;
-        max-width: 220px;
       }
 
       .hotspot-label::before {
@@ -110,7 +109,8 @@
 
       @keyframes circle {
         from {
-          transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg);
+          transform: translateX(-50%) rotate(0deg) translateX(50px)
+            rotate(0deg);
         }
         to {
           transform: translateX(-50%) rotate(360deg) translateX(50px)
@@ -155,76 +155,61 @@
         display: block;
       }
 
-      /* Debug panel for hotspot depth tweaking */
-      #hotspot-debug-panel {
+      /* Helper control panel */
+      #hotspot-helper {
         position: fixed;
         top: 12px;
         right: 12px;
         z-index: 10000;
-        width: 280px;
-        max-height: 80vh;
-        overflow: auto;
-        background: rgba(17, 17, 17, 0.92);
-        border-radius: 8px;
-        padding: 10px 12px;
+        max-width: 320px;
+        background: rgba(15, 15, 20, 0.9);
         color: #f5f5f5;
+        padding: 10px 12px;
+        border-radius: 12px;
         font-size: 12px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
         backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
-      #hotspot-debug-panel h2 {
-        margin: 0 0 8px;
+      #hotspot-helper h2 {
+        margin: 0 0 4px;
         font-size: 13px;
         font-weight: 600;
       }
 
-      .hotspot-debug-row {
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
-        padding-top: 6px;
-        margin-top: 6px;
+      #hotspot-helper small {
+        display: block;
+        margin-bottom: 6px;
+        opacity: 0.75;
       }
 
-      .hotspot-debug-row:first-of-type {
-        border-top: none;
-        padding-top: 0;
-        margin-top: 0;
+      .hotspot-slider-group {
+        margin-bottom: 8px;
       }
 
-      .hotspot-debug-label {
-        font-weight: 600;
-        margin-bottom: 4px;
-      }
-
-      .hotspot-debug-controls {
+      .hotspot-slider-group label {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: 6px;
+        margin-bottom: 2px;
       }
 
-      .hotspot-debug-controls input[type="range"] {
-        flex: 1;
+      .hotspot-slider-group input[type="range"] {
+        width: 100%;
       }
 
-      .coords {
-        margin-top: 2px;
-        opacity: 0.8;
-        word-break: break-all;
-      }
-
-      .copy-btn {
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 4px;
-        background: transparent;
-        color: #f5f5f5;
+      .hotspot-slider-group code {
         font-size: 11px;
-        padding: 2px 6px;
-        cursor: pointer;
-        white-space: nowrap;
+        opacity: 0.8;
       }
 
-      .copy-btn:active {
-        background: rgba(255, 255, 255, 0.15);
+      .coords-output {
+        margin-top: 2px;
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+          Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 10px;
+        white-space: pre;
+        opacity: 0.85;
       }
     </style>
   </head>
@@ -238,23 +223,20 @@
       ar
       camera-controls
       touch-action="pan-y"
-      alt="A 3D cell model with hotspots">
-
+      alt="A 3D cell model with hotspots"
+    >
       <!-- AR button -->
-      <button slot="ar-button" id="ar-button">
-        View in your space
-      </button>
+      <button slot="ar-button" id="ar-button">View in your space</button>
 
-      <!-- Nucleus Hotspot -->
+      <!-- Nucleus -->
       <button
-        id="hotspot-nucleus"
         slot="hotspot-nucleus"
         class="hotspot"
-        data-label="Nucleus"
+        data-position="-8.332 1.103 -1.368"
         data-base-position="-8.332 1.103 -1.368"
         data-normal="0.973 -0.164 0.164"
-        data-position="-8.332 1.103 -1.368"
-        data-visibility-attribute="visible">
+        data-visibility-attribute="visible"
+      >
         <div class="hotspot-label">
           Nucleus
           <span class="hotspot-description">
@@ -263,74 +245,70 @@
         </div>
       </button>
 
-      <!-- Golgi Complex Hotspot -->
+      <!-- Golgi Complex -->
       <button
-        id="hotspot-golgi"
         slot="hotspot-golgi"
         class="hotspot"
-        data-label="Golgi Complex"
+        data-position="5.767 5.383 3.847"
         data-base-position="5.767 5.383 3.847"
         data-normal="-0.679 -0.519 -0.519"
-        data-position="5.767 5.383 3.847"
-        data-visibility-attribute="visible">
+        data-visibility-attribute="visible"
+      >
         <div class="hotspot-label">
           Golgi Complex
           <span class="hotspot-description">
-            Modifies, sorts, and packages proteins and lipids.
+            Modifies, sorts, and packages proteins for secretion.
           </span>
         </div>
       </button>
 
-      <!-- Mitochondrion Hotspot -->
+      <!-- Mitochondrion -->
       <button
-        id="hotspot-mito"
         slot="hotspot-mito"
         class="hotspot"
-        data-label="Mitochondrion"
+        data-position="7.916 3.887 0.024"
         data-base-position="7.916 3.887 0.024"
         data-normal="-0.842 -0.507 -0.181"
-        data-position="7.916 3.887 0.024"
-        data-visibility-attribute="visible">
+        data-visibility-attribute="visible"
+      >
         <div class="hotspot-label">
           Mitochondrion
           <span class="hotspot-description">
-            Produces ATP, the cell’s primary energy currency.
+            Produces ATP, the cell’s main energy currency.
           </span>
         </div>
       </button>
 
-      <!-- Ribosome Hotspot -->
+      <!-- Ribosome -->
       <button
-        id="hotspot-ribosome"
         slot="hotspot-ribosome"
         class="hotspot"
-        data-label="Ribosome"
+        data-position="4.136 0.694 -7.623"
         data-base-position="4.136 0.694 -7.623"
         data-normal="-0.507 -0.181 0.842"
-        data-position="4.136 0.694 -7.623"
-        data-visibility-attribute="visible">
+        data-visibility-attribute="visible"
+      >
         <div class="hotspot-label">
           Ribosome
           <span class="hotspot-description">
-            Synthesizes proteins from amino acids.
+            Site of protein synthesis.
           </span>
         </div>
       </button>
 
-      <!-- Primary Granules Hotspot -->
+      <!-- Primary Granules -->
       <button
-        id="hotspot-granules"
         slot="hotspot-granules"
         class="hotspot"
-        data-label="Primary Granules"
+        data-position="-3.712 -1.263 7.749"
         data-base-position="-3.712 -1.263 7.749"
         data-normal="0.521 0.181 -0.834"
-        data-position="-3.712 -1.263 7.749"
-        data-visibility-attribute="visible">
+        data-visibility-attribute="visible"
+      >
         <div class="hotspot-label">
           Primary Granules
           <span class="hotspot-description">
-            Specialized vesicles containing enzymes and other molecules.
+            Contain enzymes and molecules used in cell defense.
           </span>
         </div>
       </button>
@@ -342,124 +320,132 @@
       <button id="ar-failure">AR is not tracking!</button>
     </model-viewer>
 
-    <!-- Debug panel for adjusting depth -->
-    <div id="hotspot-debug-panel">
-      <h2>Hotspot Depth Debug</h2>
-      <div id="hotspot-debug-rows"></div>
+    <!-- Helper panel -->
+    <div id="hotspot-helper">
+      <h2>Hotspot Depth Helper</h2>
+      <small>
+        Adjust along each hotspot’s normal to move it inside the cell.<br />
+        Copy the final coords into your production HTML when satisfied.
+      </small>
+
+      <div class="hotspot-slider-group" data-hotspot-id="hotspot-nucleus">
+        <label>
+          Nucleus
+          <span><span class="depth-val">0</span></span>
+        </label>
+        <input type="range" min="-5" max="5" step="0.1" value="0" />
+        <div class="coords-output"></div>
+      </div>
+
+      <div class="hotspot-slider-group" data-hotspot-id="hotspot-golgi">
+        <label>
+          Golgi
+          <span><span class="depth-val">0</span></span>
+        </label>
+        <input type="range" min="-5" max="5" step="0.1" value="0" />
+        <div class="coords-output"></div>
+      </div>
+
+      <div class="hotspot-slider-group" data-hotspot-id="hotspot-mito">
+        <label>
+          Mitochondrion
+          <span><span class="depth-val">0</span></span>
+        </label>
+        <input type="range" min="-5" max="5" step="0.1" value="0" />
+        <div class="coords-output"></div>
+      </div>
+
+      <div class="hotspot-slider-group" data-hotspot-id="hotspot-ribosome">
+        <label>
+          Ribosome
+          <span><span class="depth-val">0</span></span>
+        </label>
+        <input type="range" min="-5" max="5" step="0.1" value="0" />
+        <div class="coords-output"></div>
+      </div>
+
+      <div class="hotspot-slider-group" data-hotspot-id="hotspot-granules">
+        <label>
+          Primary Granules
+          <span><span class="depth-val">0</span></span>
+        </label>
+        <input type="range" min="-5" max="5" step="0.1" value="0" />
+        <div class="coords-output"></div>
+      </div>
     </div>
 
     <script>
+      const modelViewer = document.getElementById("cell-viewer");
+
       function parseVec3(str) {
-        const [x, y, z] = str.split(/\s+/).map(Number);
-        return { x, y, z };
+        return str
+          .trim()
+          .split(/\s+/)
+          .map(Number);
       }
 
-      function vecToString(v) {
-        // Trim to 3 decimals for readability
-        return (
-          v.x.toFixed(3) + " " + v.y.toFixed(3) + " " + v.z.toFixed(3)
+      function formatVec3(vec) {
+        return vec.map((v) => v.toFixed(3)).join(" ");
+      }
+
+      function moveHotspotAlongNormal(slotName, depth) {
+        const hotspot = modelViewer.querySelector(`[slot="${slotName}"]`);
+        if (!hotspot) return;
+
+        const basePos = parseVec3(
+          hotspot.getAttribute("data-base-position") ||
+            hotspot.getAttribute("data-position")
         );
+        const normal = parseVec3(hotspot.getAttribute("data-normal"));
+
+        const offset = parseFloat(depth) || 0;
+
+        const newPos = [
+          basePos[0] + normal[0] * offset,
+          basePos[1] + normal[1] * offset,
+          basePos[2] + normal[2] * offset,
+        ];
+
+        hotspot.setAttribute("data-position", formatVec3(newPos));
+
+        console.log(
+          `[${slotName}] depth=${offset} → position=${formatVec3(newPos)}`
+        );
+
+        const group = document.querySelector(
+          `.hotspot-slider-group[data-hotspot-id="${slotName}"]`
+        );
+        if (group) {
+          const coordsEl = group.querySelector(".coords-output");
+          if (coordsEl) {
+            coordsEl.textContent = `data-position="${formatVec3(
+              newPos
+            )}"\ndata-normal="${hotspot.getAttribute("data-normal")}"`;
+          }
+        }
       }
 
-      function offsetAlongNormal(base, normal, depth) {
-        // Move inward: base - normal * depth
-        return {
-          x: base.x - normal.x * depth,
-          y: base.y - normal.y * depth,
-          z: base.z - normal.z * depth,
-        };
+      function initHotspotSliders() {
+        const groups = document.querySelectorAll(".hotspot-slider-group");
+        groups.forEach((group) => {
+          const slotName = group.getAttribute("data-hotspot-id");
+          const slider = group.querySelector('input[type="range"]');
+          const depthVal = group.querySelector(".depth-val");
+
+          if (!slider) return;
+
+          slider.addEventListener("input", (e) => {
+            const value = e.target.value;
+            if (depthVal) depthVal.textContent = value;
+            moveHotspotAlongNormal(slotName, value);
+          });
+
+          moveHotspotAlongNormal(slotName, slider.value);
+        });
       }
 
       window.addEventListener("DOMContentLoaded", () => {
-        const modelViewer = document.getElementById("cell-viewer");
-        const debugRowsContainer =
-          document.getElementById("hotspot-debug-rows");
-
-        const hotspots = Array.from(
-          modelViewer.querySelectorAll(".hotspot")
-        );
-
-        hotspots.forEach((hotspot, index) => {
-          const label =
-            hotspot.dataset.label || hotspot.id || `Hotspot ${index + 1}`;
-          const basePos = parseVec3(
-            hotspot.dataset.basePosition || hotspot.dataset.position
-          );
-          const normal = parseVec3(hotspot.dataset.normal);
-          const initialDepth = 0; // start with no offset
-
-          // Build debug row UI
-          const row = document.createElement("div");
-          row.className = "hotspot-debug-row";
-
-          const title = document.createElement("div");
-          title.className = "hotspot-debug-label";
-          title.textContent = label;
-          row.appendChild(title);
-
-          const controls = document.createElement("div");
-          controls.className = "hotspot-debug-controls";
-
-          const range = document.createElement("input");
-          range.type = "range";
-          range.min = "-3"; // you can tweak range as needed
-          range.max = "3";
-          range.step = "0.1";
-          range.value = initialDepth.toString();
-
-          const depthLabel = document.createElement("span");
-          depthLabel.textContent = "d=0.0";
-
-          const copyBtn = document.createElement("button");
-          copyBtn.textContent = "Copy coords";
-          copyBtn.className = "copy-btn";
-
-          controls.appendChild(range);
-          controls.appendChild(depthLabel);
-          controls.appendChild(copyBtn);
-          row.appendChild(controls);
-
-          const coordsDiv = document.createElement("div");
-          coordsDiv.className = "coords";
-          row.appendChild(coordsDiv);
-
-          debugRowsContainer.appendChild(row);
-
-          function applyDepth(depth) {
-            const d = Number(depth);
-            const newPos = offsetAlongNormal(basePos, normal, d);
-            const posStr = vecToString(newPos);
-
-            hotspot.setAttribute("data-position", posStr);
-            // This is where model-viewer actually reads it from:
-            hotspot.dataset.position = posStr;
-
-            depthLabel.textContent = `d=${d.toFixed(1)}`;
-            coordsDiv.textContent = `pos: ${posStr}`;
-            console.log(`[${label}] depth=${d.toFixed(1)} pos=${posStr}`);
-          }
-
-          range.addEventListener("input", (e) => {
-            applyDepth(e.target.value);
-          });
-
-          copyBtn.addEventListener("click", async () => {
-            const pos = hotspot.dataset.position;
-            const text = `data-position="${pos}" data-normal="${hotspot.dataset.normal}"`;
-            try {
-              await navigator.clipboard.writeText(text);
-              copyBtn.textContent = "Copied!";
-              setTimeout(() => {
-                copyBtn.textContent = "Copy coords";
-              }, 1200);
-            } catch {
-              // Clipboard not available, no big deal
-            }
-          });
-
-          // Initialize UI with depth 0 (base position)
-          applyDepth(initialDepth);
-        });
+        initHotspotSliders();
       });
     </script>
   </body>
