@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>AR Model Viewer</title>
+    <title>AR Model Viewer – Cell Hotspots</title>
 
     <!-- model-viewer web component -->
     <script
@@ -11,7 +11,6 @@
     </script>
 
     <style>
-      /* Hide children until <model-viewer> is defined */
       :not(:defined) > * {
         display: none;
       }
@@ -33,7 +32,6 @@
         overflow: hidden;
       }
 
-      /* AR button */
       #ar-button {
         position: fixed;
         left: 50%;
@@ -69,33 +67,12 @@
         outline: 1px solid #4285f4;
       }
 
-      /* Helper toggle button (for finding hotspot coordinates) */
-      #helper-toggle {
-        position: fixed;
-        top: 16px;
-        right: 16px;
-        z-index: 9999;
-        padding: 6px 12px;
-        font-size: 12px;
-        border-radius: 999px;
-        border: 1px solid #444;
-        background: rgba(0, 0, 0, 0.7);
-        color: #fff;
-        cursor: pointer;
-      }
-
-      #helper-toggle.on {
-        background: rgba(76, 175, 80, 0.9);
-        border-color: #4caf50;
-      }
-
-      /* Hotspots */
       .hotspot {
         border: none;
         padding: 0;
         background: none;
         cursor: pointer;
-        transform: translate(-50%, -50%); /* center on point */
+        transform: translate(-50%, -50%);
       }
 
       .hotspot-label {
@@ -109,6 +86,7 @@
         color: #fff;
         font-size: 12px;
         line-height: 1.3;
+        max-width: 220px;
       }
 
       .hotspot-label::before {
@@ -130,7 +108,6 @@
         display: inline;
       }
 
-      /* AR hand prompt animation */
       @keyframes circle {
         from {
           transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg);
@@ -166,33 +143,93 @@
         animation: circle 4s linear infinite;
       }
 
-      /* AR tracking failure message */
       model-viewer > #ar-failure {
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
         bottom: 175px;
         display: none;
-        padding: 6px 12px;
-        border-radius: 999px;
-        border: 1px solid #f44336;
-        background: rgba(0, 0, 0, 0.8);
-        color: #fff;
-        font-size: 12px;
       }
 
       model-viewer[ar-tracking="not-tracking"] > #ar-failure {
         display: block;
       }
+
+      /* Debug panel for hotspot depth tweaking */
+      #hotspot-debug-panel {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 10000;
+        width: 280px;
+        max-height: 80vh;
+        overflow: auto;
+        background: rgba(17, 17, 17, 0.92);
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: #f5f5f5;
+        font-size: 12px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(8px);
+      }
+
+      #hotspot-debug-panel h2 {
+        margin: 0 0 8px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .hotspot-debug-row {
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        padding-top: 6px;
+        margin-top: 6px;
+      }
+
+      .hotspot-debug-row:first-of-type {
+        border-top: none;
+        padding-top: 0;
+        margin-top: 0;
+      }
+
+      .hotspot-debug-label {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .hotspot-debug-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .hotspot-debug-controls input[type="range"] {
+        flex: 1;
+      }
+
+      .coords {
+        margin-top: 2px;
+        opacity: 0.8;
+        word-break: break-all;
+      }
+
+      .copy-btn {
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        background: transparent;
+        color: #f5f5f5;
+        font-size: 11px;
+        padding: 2px 6px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .copy-btn:active {
+        background: rgba(255, 255, 255, 0.15);
+      }
     </style>
   </head>
 
   <body>
-    <!-- Hotspot helper toggle -->
-    <button id="helper-toggle" type="button">
-      Helper: OFF
-    </button>
-
     <model-viewer
       id="cell-viewer"
       src="model.glb"
@@ -201,21 +238,23 @@
       ar
       camera-controls
       touch-action="pan-y"
-      alt="A 3D cell model with hotspots"
-    >
+      alt="A 3D cell model with hotspots">
+
       <!-- AR button -->
       <button slot="ar-button" id="ar-button">
         View in your space
       </button>
 
-      <!-- Hotspot #1 -->
+      <!-- Nucleus Hotspot -->
       <button
-        slot="hotspot-1"
+        id="hotspot-nucleus"
+        slot="hotspot-nucleus"
         class="hotspot"
-        data-position="-8.332 1.103 -1.368"
+        data-label="Nucleus"
+        data-base-position="-8.332 1.103 -1.368"
         data-normal="0.973 -0.164 0.164"
-        data-visibility-attribute="visible"
-      >
+        data-position="-8.332 1.103 -1.368"
+        data-visibility-attribute="visible">
         <div class="hotspot-label">
           Nucleus
           <span class="hotspot-description">
@@ -224,118 +263,203 @@
         </div>
       </button>
 
-      <!-- Hotspot #2 -->
+      <!-- Golgi Complex Hotspot -->
       <button
-        slot="hotspot-2"
+        id="hotspot-golgi"
+        slot="hotspot-golgi"
         class="hotspot"
-        data-position="5.767 5.383 3.847"
+        data-label="Golgi Complex"
+        data-base-position="5.767 5.383 3.847"
         data-normal="-0.679 -0.519 -0.519"
-        data-visibility-attribute="visible"
-      >
+        data-position="5.767 5.383 3.847"
+        data-visibility-attribute="visible">
         <div class="hotspot-label">
           Golgi Complex
           <span class="hotspot-description">
-            Temp
+            Modifies, sorts, and packages proteins and lipids.
           </span>
         </div>
       </button>
 
-      <!-- Hotspot #3 -->
+      <!-- Mitochondrion Hotspot -->
       <button
-        slot="hotspot-3"
+        id="hotspot-mito"
+        slot="hotspot-mito"
         class="hotspot"
-        data-position="7.916 3.887 0.024"
+        data-label="Mitochondrion"
+        data-base-position="7.916 3.887 0.024"
         data-normal="-0.842 -0.507 -0.181"
-        data-visibility-attribute="visible"
-      >
+        data-position="7.916 3.887 0.024"
+        data-visibility-attribute="visible">
         <div class="hotspot-label">
           Mitochondrion
           <span class="hotspot-description">
-            Temp
+            Produces ATP, the cell’s primary energy currency.
           </span>
         </div>
       </button>
 
-      <!-- Hotspot #4 -->
+      <!-- Ribosome Hotspot -->
       <button
-        slot="hotspot-4"
+        id="hotspot-ribosome"
+        slot="hotspot-ribosome"
         class="hotspot"
-        data-position="4.136 0.694 -7.623"
+        data-label="Ribosome"
+        data-base-position="4.136 0.694 -7.623"
         data-normal="-0.507 -0.181 0.842"
-        data-visibility-attribute="visible"
-      >
+        data-position="4.136 0.694 -7.623"
+        data-visibility-attribute="visible">
         <div class="hotspot-label">
           Ribosome
           <span class="hotspot-description">
-            Temp
+            Synthesizes proteins from amino acids.
           </span>
         </div>
       </button>
 
-      <!-- Hotspot #5 -->
+      <!-- Primary Granules Hotspot -->
       <button
-        slot="hotspot-5"
+        id="hotspot-granules"
+        slot="hotspot-granules"
         class="hotspot"
-        data-position="-3.712 -1.263 7.749"
+        data-label="Primary Granules"
+        data-base-position="-3.712 -1.263 7.749"
         data-normal="0.521 0.181 -0.834"
-        data-visibility-attribute="visible"
-      >
+        data-position="-3.712 -1.263 7.749"
+        data-visibility-attribute="visible">
         <div class="hotspot-label">
           Primary Granules
           <span class="hotspot-description">
-            Temp
+            Specialized vesicles containing enzymes and other molecules.
           </span>
         </div>
       </button>
 
-      <!-- AR prompt (hand icon) -->
       <div id="ar-prompt">
         <img src="hand.png" alt="Move phone to find surface" />
       </div>
 
-      <!-- AR tracking failure message -->
-      <button id="ar-failure">
-        AR is not tracking!
-      </button>
+      <button id="ar-failure">AR is not tracking!</button>
     </model-viewer>
 
+    <!-- Debug panel for adjusting depth -->
+    <div id="hotspot-debug-panel">
+      <h2>Hotspot Depth Debug</h2>
+      <div id="hotspot-debug-rows"></div>
+    </div>
+
     <script>
-      const modelViewer = document.querySelector("#cell-viewer");
-      const helperToggle = document.querySelector("#helper-toggle");
+      function parseVec3(str) {
+        const [x, y, z] = str.split(/\s+/).map(Number);
+        return { x, y, z };
+      }
 
-      let helperOn = false;
-
-      helperToggle.addEventListener("click", () => {
-        helperOn = !helperOn;
-        helperToggle.textContent = helperOn ? "Helper: ON (click model)" : "Helper: OFF";
-        helperToggle.classList.toggle("on", helperOn);
-      });
-
-      // When helper mode is ON, clicking the model logs position + normal to console
-      modelViewer.addEventListener("click", (event) => {
-        if (!helperOn) return;
-
-        const rect = modelViewer.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-
-        const hit = modelViewer.positionAndNormalFromPoint(x, y);
-
-        if (hit == null) {
-          console.log("No mesh hit at this point.");
-          return;
-        }
-
-        const { position, normal } = hit;
-
-        const posStr = `${position.x.toFixed(3)} ${position.y.toFixed(3)} ${position.z.toFixed(3)}`;
-        const normStr = `${normal.x.toFixed(3)} ${normal.y.toFixed(3)} ${normal.z.toFixed(3)}`;
-
-        console.log("Hotspot position:", posStr);
-        console.log("Hotspot normal:", normStr);
-        console.log(
-          `Use:\n  data-position="${posStr}"\n  data-normal="${normStr}"`
+      function vecToString(v) {
+        // Trim to 3 decimals for readability
+        return (
+          v.x.toFixed(3) + " " + v.y.toFixed(3) + " " + v.z.toFixed(3)
         );
+      }
+
+      function offsetAlongNormal(base, normal, depth) {
+        // Move inward: base - normal * depth
+        return {
+          x: base.x - normal.x * depth,
+          y: base.y - normal.y * depth,
+          z: base.z - normal.z * depth,
+        };
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        const modelViewer = document.getElementById("cell-viewer");
+        const debugRowsContainer =
+          document.getElementById("hotspot-debug-rows");
+
+        const hotspots = Array.from(
+          modelViewer.querySelectorAll(".hotspot")
+        );
+
+        hotspots.forEach((hotspot, index) => {
+          const label =
+            hotspot.dataset.label || hotspot.id || `Hotspot ${index + 1}`;
+          const basePos = parseVec3(
+            hotspot.dataset.basePosition || hotspot.dataset.position
+          );
+          const normal = parseVec3(hotspot.dataset.normal);
+          const initialDepth = 0; // start with no offset
+
+          // Build debug row UI
+          const row = document.createElement("div");
+          row.className = "hotspot-debug-row";
+
+          const title = document.createElement("div");
+          title.className = "hotspot-debug-label";
+          title.textContent = label;
+          row.appendChild(title);
+
+          const controls = document.createElement("div");
+          controls.className = "hotspot-debug-controls";
+
+          const range = document.createElement("input");
+          range.type = "range";
+          range.min = "-3"; // you can tweak range as needed
+          range.max = "3";
+          range.step = "0.1";
+          range.value = initialDepth.toString();
+
+          const depthLabel = document.createElement("span");
+          depthLabel.textContent = "d=0.0";
+
+          const copyBtn = document.createElement("button");
+          copyBtn.textContent = "Copy coords";
+          copyBtn.className = "copy-btn";
+
+          controls.appendChild(range);
+          controls.appendChild(depthLabel);
+          controls.appendChild(copyBtn);
+          row.appendChild(controls);
+
+          const coordsDiv = document.createElement("div");
+          coordsDiv.className = "coords";
+          row.appendChild(coordsDiv);
+
+          debugRowsContainer.appendChild(row);
+
+          function applyDepth(depth) {
+            const d = Number(depth);
+            const newPos = offsetAlongNormal(basePos, normal, d);
+            const posStr = vecToString(newPos);
+
+            hotspot.setAttribute("data-position", posStr);
+            // This is where model-viewer actually reads it from:
+            hotspot.dataset.position = posStr;
+
+            depthLabel.textContent = `d=${d.toFixed(1)}`;
+            coordsDiv.textContent = `pos: ${posStr}`;
+            console.log(`[${label}] depth=${d.toFixed(1)} pos=${posStr}`);
+          }
+
+          range.addEventListener("input", (e) => {
+            applyDepth(e.target.value);
+          });
+
+          copyBtn.addEventListener("click", async () => {
+            const pos = hotspot.dataset.position;
+            const text = `data-position="${pos}" data-normal="${hotspot.dataset.normal}"`;
+            try {
+              await navigator.clipboard.writeText(text);
+              copyBtn.textContent = "Copied!";
+              setTimeout(() => {
+                copyBtn.textContent = "Copy coords";
+              }, 1200);
+            } catch {
+              // Clipboard not available, no big deal
+            }
+          });
+
+          // Initialize UI with depth 0 (base position)
+          applyDepth(initialDepth);
+        });
       });
     </script>
   </body>
