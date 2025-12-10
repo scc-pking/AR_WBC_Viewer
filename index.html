@@ -113,13 +113,16 @@
         display: block;
       }
 
+      /* HOTSPOTS */
+
       .hotspot {
         border: none;
         padding: 0;
         background: none;
         cursor: pointer;
-        transform: translate(-50%, -50%) scale(var(--hotspot-scale, 1));
-  	transform-origin: center center;
+        /* center + scale; JS writes --hotspot-scale */
+        --hotspot-scale: 1;
+        transform: translate(-50%, -50%) scale(var(--hotspot-scale));
       }
 
       .hotspot-label {
@@ -127,26 +130,28 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 10px 16px;
+        padding: 8px 12px; /* slightly bigger */
         border-radius: 999px;
         background: rgba(0, 0, 0, 0.85);
         color: #fff;
-        font-size: 14px;
+        font-size: 16px;   /* slightly bigger base text */
         line-height: 1.3;
+        white-space: nowrap;
       }
 
       .hotspot-label::before {
         content: "";
-        width: 12px;
-        height: 12px;
+        width: 13px;
+        height: 13px;
         border-radius: 50%;
         background: #4caf50;
+        flex-shrink: 0;
       }
 
       .hotspot-description {
         display: none;
         margin-left: 4px;
-        font-size: 11px;
+        font-size: 14px;
         opacity: 0.9;
       }
 
@@ -194,29 +199,6 @@
         font-family: monospace;
         font-size: 11px;
       }
-	/* Grey when occluded */
-	.hotspot[visible="false"] .hotspot-label {
-	  opacity: 0.3;
-	  font-weight: 400;
-	  filter: grayscale(0.5);
-	}
-
-	/* Normal when visible */
-	.hotspot[visible="true"] .hotspot-label {
-	  opacity: 0.8;
-	  font-weight: 500;
-	  filter: grayscale(0.1);
-	}
-
-	/* OVERRIDE: always bright on hover/focus, even if visible="false" */
-	.hotspot:hover .hotspot-label,
-	.hotspot.hotspot--focused .hotspot-label {
-	  opacity: 1 !important;
-	  font-weight: 700;
-	  transform: scale(1.05);
-	  filter: none;
-	}
-
     </style>
   </head>
 
@@ -241,7 +223,7 @@
         id="hotspot-nucleus"
         slot="hotspot-nucleus"
         class="hotspot"
-        data-position="-1.100 1.900 -2.600"
+        data-position="-8.332 1.103 -1.368"
         data-normal="0.973 -0.164 0.164"
         data-visibility-attribute="visible"
       >
@@ -258,8 +240,8 @@
         id="hotspot-golgi"
         slot="hotspot-golgi"
         class="hotspot"
-        data-position="1.000 0.600 -0.700"
-        data-normal="1.000 0.600 -0.700"
+        data-position="5.767 5.383 3.847"
+        data-normal="-0.679 -0.519 -0.519"
         data-visibility-attribute="visible"
       >
         <div class="hotspot-label">
@@ -275,7 +257,7 @@
         id="hotspot-mito"
         slot="hotspot-mito"
         class="hotspot"
-        data-position="3.200 0.200 -4.300"
+        data-position="7.916 3.887 0.024"
         data-normal="-0.842 -0.507 -0.181"
         data-visibility-attribute="visible"
       >
@@ -292,7 +274,7 @@
         id="hotspot-ribosome"
         slot="hotspot-ribosome"
         class="hotspot"
-        data-position="1.700 -0.600 -4.700"
+        data-position="4.136 0.694 -7.623"
         data-normal="-0.507 -0.181 0.842"
         data-visibility-attribute="visible"
       >
@@ -309,7 +291,7 @@
         id="hotspot-granules"
         slot="hotspot-granules"
         class="hotspot"
-        data-position="-1.900 -3.000 5.400"
+        data-position="-3.712 -1.263 7.749"
         data-normal="0.521 0.181 -0.834"
         data-visibility-attribute="visible"
       >
@@ -328,7 +310,7 @@
       <button id="ar-failure">AR is not tracking!</button>
     </model-viewer>
 
-    <!-- HOTSPOT POSITION TUNER PANEL 
+    <!-- HOTSPOT POSITION TUNER PANEL -->
     <div id="hotspot-controls">
       <h3>Hotspot Position Tuner</h3>
 
@@ -417,87 +399,121 @@
         </label>
         <div class="hotspot-readout"></div>
       </div>
-    </div>-->
+    </div>
 
-<script>
-  window.addEventListener("DOMContentLoaded", () => {
-    const viewer = document.getElementById("cellViewer");
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        const viewer = document.getElementById("cellViewer");
 
-    // Hotspot id -> initial [x, y, z]
-    const initialPositions = {
-      "hotspot-nucleus": [-8.332, 1.103, -1.368],
-      "hotspot-golgi": [5.767, 5.383, 3.847],
-      "hotspot-mito": [7.916, 3.887, 0.024],
-      "hotspot-ribosome": [4.136, 0.694, -7.623],
-      "hotspot-granules": [-3.712, -1.263, 7.749],
-    };
+        // Map hotspot id -> initial position vector [x,y,z]
+        const initialPositions = {
+          "hotspot-nucleus": [-8.332, 1.103, -1.368],
+          "hotspot-golgi": [5.767, 5.383, 3.847],
+          "hotspot-mito": [7.916, 3.887, 0.024],
+          "hotspot-ribosome": [4.136, 0.694, -7.623],
+          "hotspot-granules": [-3.712, -1.263, 7.749],
+        };
 
-    function setHotspotPosition(hotspotId, x, y, z) {
-      const el = document.getElementById(hotspotId);
-      if (!el) return;
+        function setHotspotPosition(hotspotId, x, y, z) {
+          const el = document.getElementById(hotspotId);
+          if (!el) return;
 
-      const slotName = el.getAttribute("slot"); // e.g. "hotspot-nucleus"
-      const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
+          const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
+          el.setAttribute("data-position", posString);
 
-      // Keep the DOM attribute in sync
-      el.setAttribute("data-position", posString);
+          console.log(`[${hotspotId}] position -> ${posString}`);
+        }
 
-      // Actually tell <model-viewer> to move the hotspot in 3D
-      if (viewer && typeof viewer.updateHotspot === "function" && slotName) {
-        viewer.updateHotspot({
-          name: slotName,
-          position: posString,
-        });
-      }
+        function initSection(sectionEl) {
+          const hotspotId = sectionEl.getAttribute("data-hotspot");
+          const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
 
-      console.log(`[${hotspotId}] position ->`, posString);
-    }
+          const xSlider = sectionEl.querySelector(".hotspot-x");
+          const ySlider = sectionEl.querySelector(".hotspot-y");
+          const zSlider = sectionEl.querySelector(".hotspot-z");
+          const readout = sectionEl.querySelector(".hotspot-readout");
 
-    function initSection(sectionEl) {
-      const hotspotId = sectionEl.getAttribute("data-hotspot");
-      const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
+          xSlider.value = x0;
+          ySlider.value = y0;
+          zSlider.value = z0;
 
-      const xSlider = sectionEl.querySelector(".hotspot-x");
-      const ySlider = sectionEl.querySelector(".hotspot-y");
-      const zSlider = sectionEl.querySelector(".hotspot-z");
-      const readout = sectionEl.querySelector(".hotspot-readout");
+          const update = () => {
+            const x = parseFloat(xSlider.value);
+            const y = parseFloat(ySlider.value);
+            const z = parseFloat(zSlider.value);
 
-      xSlider.value = x0;
-      ySlider.value = y0;
-      zSlider.value = z0;
+            setHotspotPosition(hotspotId, x, y, z);
 
-      const update = () => {
-        const x = parseFloat(xSlider.value);
-        const y = parseFloat(ySlider.value);
-        const z = parseFloat(zSlider.value);
+            readout.textContent = `data-position="${x.toFixed(3)} ${y.toFixed(
+              3
+            )} ${z.toFixed(3)}"`;
+          };
 
-        setHotspotPosition(hotspotId, x, y, z);
-        readout.textContent = `data-position="${x.toFixed(3)} ${y.toFixed(
-          3
-        )} ${z.toFixed(3)}"`;
-      };
+          xSlider.addEventListener("input", update);
+          ySlider.addEventListener("input", update);
+          zSlider.addEventListener("input", update);
 
-      xSlider.addEventListener("input", update);
-      ySlider.addEventListener("input", update);
-      zSlider.addEventListener("input", update);
+          // Set initial UI + hotspot position
+          update();
+        }
 
-      // Initial UI + hotspot position
-      update();
-    }
+        function initAllSections() {
+          document
+            .querySelectorAll("#hotspot-controls .hotspot-section")
+            .forEach(initSection);
+        }
 
-    function initAllSections() {
-      document
-        .querySelectorAll("#hotspot-controls .hotspot-section")
-        .forEach(initSection);
-    }
+        // ---------- HOTSPOT SCALE WITH ZOOM ----------
 
-    // Wait for the model to load so updateHotspot is valid
-    if (viewer) {
-      viewer.addEventListener("load", () => {
+        function clamp(value, min, max) {
+          return Math.max(min, Math.min(max, value));
+        }
+
+        function updateHotspotScale() {
+          // Uses camera orbit radius as a proxy for zoom level
+          const orbit = viewer.getCameraOrbit();
+          const radius = orbit.radius; // smaller radius = closer / more zoomed in
+
+          // Tune these numbers for your model scale
+          const minRadius = 4;   // expected "very close"
+          const maxRadius = 18;  // expected "very far"
+
+          const t = clamp(
+            (radius - minRadius) / (maxRadius - minRadius),
+            0,
+            1
+          );
+
+          // When zoomed in (small radius), scale should be larger
+          const minScale = 1.0; // far away
+          const maxScale = 2.2; // close up
+
+          const scale = maxScale - (maxScale - minScale) * t;
+
+          viewer
+            .querySelectorAll(".hotspot")
+            .forEach((el) => el.style.setProperty("--hotspot-scale", scale));
+
+          // For debugging:
+          // console.log("radius:", radius.toFixed(2), "scale:", scale.toFixed(2));
+        }
+
+        function initHotspotScaling() {
+          // Initial scale when model is ready
+          if (viewer.complete) {
+            updateHotspotScale();
+          } else {
+            viewer.addEventListener("load", updateHotspotScale, { once: true });
+          }
+
+          // Update continuously on camera changes (zoom, orbit, etc.)
+          viewer.addEventListener("camera-change", updateHotspotScale);
+        }
+
+        // Initialize everything
         initAllSections();
-      }, { once: true });
-    }
-  });
-</script>
+        initHotspotScaling();
+      });
+    </script>
   </body>
 </html>
