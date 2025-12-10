@@ -395,78 +395,84 @@
       </div>
     </div>
 
-   <script>
-  const viewer = document.getElementById("cellViewer");
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    const viewer = document.getElementById("cellViewer");
 
-  // Map hotspot id -> initial position [x, y, z]
-  const initialPositions = {
-    "hotspot-nucleus": [-8.332, 1.103, -1.368],
-    "hotspot-golgi": [5.767, 5.383, 3.847],
-    "hotspot-mito": [7.916, 3.887, 0.024],
-    "hotspot-ribosome": [4.136, 0.694, -7.623],
-    "hotspot-granules": [-3.712, -1.263, 7.749],
-  };
-
-function setHotspotPosition(hotspotId, x, y, z) {
-  const el = document.getElementById(hotspotId);
-  if (!el) return;
-
-  const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
-  el.setAttribute("data-position", posString);
-
-  // slot="hotspot-nucleus" → name = "nucleus"
-  const slot = el.getAttribute("slot");
-  const name = slot.startsWith("hotspot-") ? slot.slice(8) : slot;
-
-  viewer.updateHotspot({
-    name,
-    position: posString
-  });
-    console.log(`[${hotspotId}] position ->`, name, position);
-  }
-
-  function initSection(sectionEl) {
-    const hotspotId = sectionEl.getAttribute("data-hotspot");
-    const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
-
-    const xSlider = sectionEl.querySelector(".hotspot-x");
-    const ySlider = sectionEl.querySelector(".hotspot-y");
-    const zSlider = sectionEl.querySelector(".hotspot-z");
-    const readout = sectionEl.querySelector(".hotspot-readout");
-
-    xSlider.value = x0;
-    ySlider.value = y0;
-    zSlider.value = z0;
-
-    const update = () => {
-      const x = parseFloat(xSlider.value);
-      const y = parseFloat(ySlider.value);
-      const z = parseFloat(zSlider.value);
-
-      setHotspotPosition(hotspotId, x, y, z);
-
-      readout.textContent = `data-position="${x.toFixed(3)} ${y.toFixed(
-        3
-      )} ${z.toFixed(3)}"`;
+    // Hotspot id -> initial [x, y, z]
+    const initialPositions = {
+      "hotspot-nucleus": [-8.332, 1.103, -1.368],
+      "hotspot-golgi": [5.767, 5.383, 3.847],
+      "hotspot-mito": [7.916, 3.887, 0.024],
+      "hotspot-ribosome": [4.136, 0.694, -7.623],
+      "hotspot-granules": [-3.712, -1.263, 7.749],
     };
 
-    xSlider.addEventListener("input", update);
-    ySlider.addEventListener("input", update);
-    zSlider.addEventListener("input", update);
+    function setHotspotPosition(hotspotId, x, y, z) {
+      const el = document.getElementById(hotspotId);
+      if (!el) return;
 
-    // Initialize position + readout once the section is ready
-    update();
-  }
+      const slotName = el.getAttribute("slot"); // e.g. "hotspot-nucleus"
+      const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
 
-  function initAllSections() {
-    document
-      .querySelectorAll("#hotspot-controls .hotspot-section")
-      .forEach(initSection);
-  }
+      // Keep the DOM attribute in sync
+      el.setAttribute("data-position", posString);
 
-  // Wait for the model to load before initializing hotspots
-  viewer.addEventListener("load", () => {
-    initAllSections();
+      // Actually tell <model-viewer> to move the hotspot in 3D
+      if (viewer && typeof viewer.updateHotspot === "function" && slotName) {
+        viewer.updateHotspot({
+          name: slotName,
+          position: posString,
+        });
+      }
+
+      console.log(`[${hotspotId}] position ->`, posString);
+    }
+
+    function initSection(sectionEl) {
+      const hotspotId = sectionEl.getAttribute("data-hotspot");
+      const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
+
+      const xSlider = sectionEl.querySelector(".hotspot-x");
+      const ySlider = sectionEl.querySelector(".hotspot-y");
+      const zSlider = sectionEl.querySelector(".hotspot-z");
+      const readout = sectionEl.querySelector(".hotspot-readout");
+
+      xSlider.value = x0;
+      ySlider.value = y0;
+      zSlider.value = z0;
+
+      const update = () => {
+        const x = parseFloat(xSlider.value);
+        const y = parseFloat(ySlider.value);
+        const z = parseFloat(zSlider.value);
+
+        setHotspotPosition(hotspotId, x, y, z);
+        readout.textContent = `data-position="${x.toFixed(3)} ${y.toFixed(
+          3
+        )} ${z.toFixed(3)}"`;
+      };
+
+      xSlider.addEventListener("input", update);
+      ySlider.addEventListener("input", update);
+      zSlider.addEventListener("input", update);
+
+      // Initial UI + hotspot position
+      update();
+    }
+
+    function initAllSections() {
+      document
+        .querySelectorAll("#hotspot-controls .hotspot-section")
+        .forEach(initSection);
+    }
+
+    // Wait for the model to load so updateHotspot is valid
+    if (viewer) {
+      viewer.addEventListener("load", () => {
+        initAllSections();
+      }, { once: true });
+    }
   });
 </script>
   </body>
