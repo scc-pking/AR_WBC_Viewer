@@ -407,22 +407,21 @@
     "hotspot-granules": [-3.712, -1.263, 7.749],
   };
 
-  function setHotspotPosition(hotspotId, x, y, z) {
-    const el = document.getElementById(hotspotId);
-    if (!el) return;
+function setHotspotPosition(hotspotId, x, y, z) {
+  const el = document.getElementById(hotspotId);
+  if (!el) return;
 
-    const position = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
-    el.setAttribute("data-position", position);
+  const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
+  el.setAttribute("data-position", posString);
 
-    // Derive hotspot "name" from slot="hotspot-<name>"
-    const slot = el.getAttribute("slot") || "";
-    const name = slot.startsWith("hotspot-") ? slot.substring(8) : slot;
+  // slot="hotspot-nucleus" → name = "nucleus"
+  const slot = el.getAttribute("slot");
+  const name = slot.startsWith("hotspot-") ? slot.slice(8) : slot;
 
-    // This is what actually moves the hotspot in the 3D scene
-    if (name && typeof viewer.updateHotspot === "function") {
-      viewer.updateHotspot({ name, position });
-    }
-
+  viewer.updateHotspot({
+    name,
+    position: posString
+  });
     console.log(`[${hotspotId}] position ->`, name, position);
   }
 
