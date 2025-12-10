@@ -167,9 +167,24 @@
       }
 
       /* AR MODE: shrink hotspots so they aren't gigantic in AR */
-      model-viewer[ar-status="session-started"] .hotspot {
-        transform: translate(-50%, -50%) scale(0.7);
-      }
+	/* AR-specific tweaks: smaller hotspots, no descriptions */
+	model-viewer[ar-status="session-started"] .hotspot {
+	  --hotspot-scale: 0.55; /* tune this down until it feels right */
+	}
+	
+	model-viewer[ar-status="session-started"] .hotspot-label {
+	  padding: 6px 9px;
+	  font-size: 12px;
+	}
+
+	model-viewer[ar-status="session-started"] .hotspot-label::before {
+ 	 width: 10px;
+ 	 height: 10px;
+	}
+
+	model-viewer[ar-status="session-started"] .hotspot-description {
+ 	 display: none !important;
+	}
 
       /* Optional: slightly larger in normal 3D on mobile so they’re readable */
       @media (max-width: 768px) {
@@ -202,7 +217,7 @@
       min-camera-orbit="auto auto 80%"
       max-camera-orbit="auto auto 140%"
 
-      alt="Cell model with hotspots"
+      alt=""
     >
       <button slot="ar-button" id="ar-button">
         View in your space
