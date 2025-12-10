@@ -185,16 +185,20 @@
   <body>
     <!-- MAIN MODEL VIEWER -->
     <model-viewer
-      id="cellViewer"
-      src="model.glb"
-      ios-src="model.usdz"
-      shadow-intensity="1"
-      ar
-      camera-controls
-      touch-action="none"
-      camera-target="0m 0m 0m"
-      alt="Cell model with hotspots"
-    >
+  id="cellViewer"
+  src="model.glb"
+  ios-src="model.usdz"
+  shadow-intensity="1"
+  ar
+  camera-controls
+  disable-tap
+  touch-action="none"
+  camera-target="0m 0m 0m"
+  camera-orbit="0deg 75deg 14m"
+  field-of-view="25deg"
+  alt="Cell model with hotspots"
+>
+
       <button slot="ar-button" id="ar-button">
         View in your space
       </button>
