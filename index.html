@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>AR Model Viewer with Hotspot Tuner</title>
+    <title>AR Model Viewer</title>
 
     <!-- model-viewer web component -->
     <script
@@ -152,171 +152,106 @@
       .hotspot:hover .hotspot-description {
         display: inline;
       }
-
-      /* === Debug / Tuner panel === */
-      #hotspot-tuner {
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        z-index: 10000;
-        background: rgba(0, 0, 0, 0.75);
-        color: #fff;
-        padding: 10px 12px;
-        border-radius: 8px;
-        max-width: 260px;
-        font-size: 12px;
-        backdrop-filter: blur(8px);
-      }
-
-      #hotspot-tuner label {
-        display: block;
-        margin-top: 6px;
-      }
-
-      #hotspot-tuner select,
-      #hotspot-tuner input[type="range"] {
-        width: 100%;
-      }
-
-      #coords-output {
-        font-family: "Courier New", monospace;
-        font-size: 11px;
-        margin-top: 6px;
-        white-space: pre-wrap;
-        word-break: break-all;
-      }
-    </style>
+         </style>
   </head>
 
   <body>
-    <!-- Debug / tuning panel -->
-    <div id="hotspot-tuner">
-      <strong>Hotspot Tuner</strong>
-      <label>
-        Hotspot:
-        <select id="hotspotSelect">
-          <option value="nucleus">Nucleus</option>
-          <option value="golgi">Golgi Complex</option>
-          <option value="mitochondrion">Mitochondrion</option>
-          <option value="ribosome">Ribosome</option>
-          <option value="granules">Primary Granules</option>
-        </select>
-      </label>
-
-      <label>
-        Offset along normal:
-        <input
-          id="offsetSlider"
-          type="range"
-          min="-5"
-          max="5"
-          step="0.1"
-          value="0"
-        />
-      </label>
-      <div>Offset: <span id="offsetValue">0.0</span></div>
-
-      <div id="coords-output"></div>
-    </div>
-
     <model-viewer
-      id="cellViewer"
-      src="model.glb"
-      ios-src="model.usdz"
-      shadow-intensity="1"
-      ar
-      camera-controls
-      touch-action="pan-y"
-      alt="A 3D cell model with hotspots"
-      exposure="1.1"
-    >
-      <!-- AR button -->
-      <button slot="ar-button" id="ar-button">View in your space</button>
+<div id="hotspot-controls"
+     style="position: fixed; inset: auto 0 0 auto; width: 320px; max-height: 60vh; overflow-y: auto; padding: 12px; background: rgba(0,0,0,0.85); color: #fff; font-family: system-ui; font-size: 12px; z-index: 10000;">
+  <h3 style="margin: 0 0 8px; font-size: 14px;">Hotspot Position Tuner</h3>
 
-      <!-- Nucleus -->
-      <button
-        slot="hotspot-1"
-        class="hotspot"
-        data-id="nucleus"
-        data-position="-4 0.5 -0.75"
-        data-normal="0.973 -0.164 0.164"
-        data-visibility-attribute="visible"
-      >
-        <div class="hotspot-label">
-          Nucleus
-          <span class="hotspot-description">
-            Contains genetic material and controls cell activities.
-          </span>
-        </div>
-      </button>
+  <!-- Nucleus -->
+  <div data-hotspot="hotspot-nucleus" style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 6px;">
+    <strong>Nucleus</strong>
+    <label>
+      X
+      <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
+    </label>
+    <label>
+      Y
+      <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
+    </label>
+    <label>
+      Z
+      <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
+    </label>
+    <div class="hotspot-readout"></div>
+  </div>
 
-      <!-- Golgi Complex -->
-      <button
-        slot="hotspot-2"
-        class="hotspot"
-        data-id="golgi"
-        data-position="2.5 2.5 1.5"
-        data-normal="-0.679 -0.519 -0.519"
-        data-visibility-attribute="visible"
-      >
-        <div class="hotspot-label">
-          Golgi Complex
-          <span class="hotspot-description">
-            Modifies, sorts, and packages proteins.
-          </span>
-        </div>
-      </button>
+  <!-- Golgi -->
+  <div data-hotspot="hotspot-golgi" style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 6px;">
+    <strong>Golgi Complex</strong>
+    <label>
+      X
+      <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
+    </label>
+    <label>
+      Y
+      <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
+    </label>
+    <label>
+      Z
+      <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
+    </label>
+    <div class="hotspot-readout"></div>
+  </div>
 
-      <!-- Mitochondrion -->
-      <button
-        slot="hotspot-3"
-        class="hotspot"
-        data-id="mitochondrion"
-        data-position="4 2 0.024"
-        data-normal="-0.842 -0.507 -0.181"
-        data-visibility-attribute="visible"
-      >
-        <div class="hotspot-label">
-          Mitochondrion
-          <span class="hotspot-description">
-            Produces cellular energy (ATP).
-          </span>
-        </div>
-      </button>
+  <!-- Mitochondrion -->
+  <div data-hotspot="hotspot-mito" style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 6px;">
+    <strong>Mitochondrion</strong>
+    <label>
+      X
+      <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
+    </label>
+    <label>
+      Y
+      <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
+    </label>
+    <label>
+      Z
+      <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
+    </label>
+    <div class="hotspot-readout"></div>
+  </div>
 
-      <!-- Ribosome -->
-      <button
-        slot="hotspot-4"
-        class="hotspot"
-        data-id="ribosome"
-        data-position="2 0.3 -3.5"
-        data-normal="-1 -0.681 0.342"
-        data-visibility-attribute="visible"
-      >
-        <div class="hotspot-label">
-          Ribosome
-          <span class="hotspot-description">
-            Site of protein synthesis.
-          </span>
-        </div>
-      </button>
+  <!-- Ribosome -->
+  <div data-hotspot="hotspot-ribosome" style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 6px;">
+    <strong>Ribosome</strong>
+    <label>
+      X
+      <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
+    </label>
+    <label>
+      Y
+      <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
+    </label>
+    <label>
+      Z
+      <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
+    </label>
+    <div class="hotspot-readout"></div>
+  </div>
 
-      <!-- Primary Granules -->
-      <button
-        slot="hotspot-5"
-        class="hotspot"
-        data-id="granules"
-        data-position="-1.5 -0.6 3.75"
-        data-normal="0 -0.319 -1.334"
-        data-visibility-attribute="visible"
-      >
-        <div class="hotspot-label">
-          Primary Granules
-          <span class="hotspot-description">
-            Vesicles containing enzymes and signaling molecules.
-          </span>
-        </div>
-      </button>
+  <!-- Primary Granules -->
+  <div data-hotspot="hotspot-granules" style="margin-bottom: 4px;">
+    <strong>Primary Granules</strong>
+    <label>
+      X
+      <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
+    </label>
+    <label>
+      Y
+      <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
+    </label>
+    <label>
+      Z
+      <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
+    </label>
+    <div class="hotspot-readout"></div>
+  </div>
+</div>
+
 
       <div id="ar-prompt">
         <img src="hand.png" alt="Move phone to find surface" />
