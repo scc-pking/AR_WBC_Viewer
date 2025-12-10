@@ -395,66 +395,80 @@
       </div>
     </div>
 
-    <script>
-      window.addEventListener("DOMContentLoaded", () => {
-        const viewer = document.getElementById("cellViewer");
+   <script>
+  const viewer = document.getElementById("cellViewer");
 
-        // Map hotspot id -> initial position vector [x,y,z]
-        const initialPositions = {
-          "hotspot-nucleus": [-8.332, 1.103, -1.368],
-          "hotspot-golgi": [5.767, 5.383, 3.847],
-          "hotspot-mito": [7.916, 3.887, 0.024],
-          "hotspot-ribosome": [4.136, 0.694, -7.623],
-          "hotspot-granules": [-3.712, -1.263, 7.749],
-        };
+  // Map hotspot id -> initial position [x, y, z]
+  const initialPositions = {
+    "hotspot-nucleus": [-8.332, 1.103, -1.368],
+    "hotspot-golgi": [5.767, 5.383, 3.847],
+    "hotspot-mito": [7.916, 3.887, 0.024],
+    "hotspot-ribosome": [4.136, 0.694, -7.623],
+    "hotspot-granules": [-3.712, -1.263, 7.749],
+  };
 
-        function setHotspotPosition(hotspotId, x, y, z) {
-          const el = document.getElementById(hotspotId);
-          if (!el) return;
+  function setHotspotPosition(hotspotId, x, y, z) {
+    const el = document.getElementById(hotspotId);
+    if (!el) return;
 
-          const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
-          el.setAttribute("data-position", posString);
+    const position = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
+    el.setAttribute("data-position", position);
 
-          console.log(`[${hotspotId}] position ->`, posString);
-        }
+    // Derive hotspot "name" from slot="hotspot-<name>"
+    const slot = el.getAttribute("slot") || "";
+    const name = slot.startsWith("hotspot-") ? slot.substring(8) : slot;
 
-        function initSection(sectionEl) {
-          const hotspotId = sectionEl.getAttribute("data-hotspot");
-          const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
+    // This is what actually moves the hotspot in the 3D scene
+    if (name && typeof viewer.updateHotspot === "function") {
+      viewer.updateHotspot({ name, position });
+    }
 
-          const xSlider = sectionEl.querySelector(".hotspot-x");
-          const ySlider = sectionEl.querySelector(".hotspot-y");
-          const zSlider = sectionEl.querySelector(".hotspot-z");
-          const readout = sectionEl.querySelector(".hotspot-readout");
+    console.log(`[${hotspotId}] position ->`, name, position);
+  }
 
-          xSlider.value = x0;
-          ySlider.value = y0;
-          zSlider.value = z0;
+  function initSection(sectionEl) {
+    const hotspotId = sectionEl.getAttribute("data-hotspot");
+    const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
 
-          const update = () => {
-            const x = parseFloat(xSlider.value);
-            const y = parseFloat(ySlider.value);
-            const z = parseFloat(zSlider.value);
+    const xSlider = sectionEl.querySelector(".hotspot-x");
+    const ySlider = sectionEl.querySelector(".hotspot-y");
+    const zSlider = sectionEl.querySelector(".hotspot-z");
+    const readout = sectionEl.querySelector(".hotspot-readout");
 
-            setHotspotPosition(hotspotId, x, y, z);
+    xSlider.value = x0;
+    ySlider.value = y0;
+    zSlider.value = z0;
 
-            readout.textContent = `data-position="${x.toFixed(3)} ${y.toFixed(
-              3
-            )} ${z.toFixed(3)}"`;
-          };
+    const update = () => {
+      const x = parseFloat(xSlider.value);
+      const y = parseFloat(ySlider.value);
+      const z = parseFloat(zSlider.value);
 
-          xSlider.addEventListener("input", update);
-          ySlider.addEventListener("input", update);
-          zSlider.addEventListener("input", update);
+      setHotspotPosition(hotspotId, x, y, z);
 
-          // Set initial UI + hotspot position
-          update();
-        }
+      readout.textContent = `data-position="${x.toFixed(3)} ${y.toFixed(
+        3
+      )} ${z.toFixed(3)}"`;
+    };
 
-        document
-          .querySelectorAll("#hotspot-controls .hotspot-section")
-          .forEach(initSection);
-      });
-    </script>
+    xSlider.addEventListener("input", update);
+    ySlider.addEventListener("input", update);
+    zSlider.addEventListener("input", update);
+
+    // Initialize position + readout once the section is ready
+    update();
+  }
+
+  function initAllSections() {
+    document
+      .querySelectorAll("#hotspot-controls .hotspot-section")
+      .forEach(initSection);
+  }
+
+  // Wait for the model to load before initializing hotspots
+  viewer.addEventListener("load", () => {
+    initAllSections();
+  });
+</script>
   </body>
 </html>
