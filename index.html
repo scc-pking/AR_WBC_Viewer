@@ -113,30 +113,23 @@
         display: block;
       }
 
-      /* ================= HOTSPOTS ================= */
+      /* ========================
+         HOTSPOTS
+         ======================== */
 
+      /* Center pivot at hotspot center & apply scale from CSS var */
       .hotspot {
         border: none;
         padding: 0;
         background: none;
         cursor: pointer;
 
-        /* scale controlled from JS */
+        /* JS writes this var */
         --hotspot-scale: 1;
 
-        /* pivot at the CENTER of the hotspot */
+        /* anchor at center of button, not top-left */
         transform: translate(-50%, -50%) scale(var(--hotspot-scale));
-        transform-origin: center center;
-
-        /* kill any occlusion-based dimming */
-        opacity: 1 !important;
-        filter: none !important;
-      }
-
-      /* If you ever had CSS using [data-visible="false"], this overrides it */
-      .hotspot[data-visible="false"] {
-        opacity: 1 !important;
-        filter: none !important;
+        transform-origin: 50% 50%;
       }
 
       .hotspot-label {
@@ -146,9 +139,9 @@
         gap: 8px;
         padding: 8px 12px;
         border-radius: 999px;
-        background: rgba(0, 0, 0, 0.9);
+        background: rgba(0, 0, 0, 0.85);
         color: #fff;
-        font-size: 15px;
+        font-size: 16px;
         line-height: 1.3;
         white-space: nowrap;
       }
@@ -169,15 +162,21 @@
         opacity: 0.9;
       }
 
-      .hotspot:hover .hotspot-description,
-      .hotspot:focus-visible .hotspot-description {
+      .hotspot:hover .hotspot-description {
         display: inline;
       }
 
-      /* OPTIONAL: visual "highlight" when hovered/focused */
-      .hotspot:hover .hotspot-label,
-      .hotspot:focus-visible .hotspot-label {
-        background: rgba(76, 175, 80, 0.95);
+      /* AR MODE: shrink hotspots so they aren't gigantic in AR */
+      model-viewer[ar-status="session-started"] .hotspot {
+        transform: translate(-50%, -50%) scale(0.7);
+      }
+
+      /* Optional: slightly larger in normal 3D on mobile so they’re readable */
+      @media (max-width: 768px) {
+        model-viewer:not([ar-status="session-started"]) .hotspot-label {
+          font-size: 18px;
+          padding: 10px 14px;
+        }
       }
     </style>
   </head>
@@ -185,20 +184,26 @@
   <body>
     <!-- MAIN MODEL VIEWER -->
     <model-viewer
-  id="cellViewer"
-  src="model.glb"
-  ios-src="model.usdz"
-  shadow-intensity="1"
-  ar
-  camera-controls
-  disable-tap
-  touch-action="none"
-  camera-target="0m 0m 0m"
-  camera-orbit="0deg 75deg 14m"
-  field-of-view="25deg"
-  alt="Cell model with hotspots"
->
+      id="cellViewer"
+      src="model.glb"
+      ios-src="model.usdz"
+      shadow-intensity="1"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      camera-controls
+      disable-pan
+      disable-tap
+      touch-action="pan-y"
+      interaction-prompt="none"
 
+      <!-- lock to orbit only, no “inside pivot” feeling -->
+      camera-target="auto auto auto"
+      camera-orbit="0deg 70deg 105%"
+      min-camera-orbit="auto auto 80%"
+      max-camera-orbit="auto auto 140%"
+
+      alt="Cell model with hotspots"
+    >
       <button slot="ar-button" id="ar-button">
         View in your space
       </button>
@@ -298,51 +303,41 @@
           return Math.max(min, Math.min(max, value));
         }
 
+        // Scale hotspots based on zoom (camera orbit radius) in the 3D view.
         function updateHotspotScale() {
-          // Prefer the official API if present
-          let fov;
-
-          if (typeof viewer.getFieldOfView === "function") {
-            fov = viewer.getFieldOfView();
-          } else if (viewer.fieldOfView) {
-            // fallback to attribute/string if needed
-            fov = parseFloat(viewer.fieldOfView);
-          } else {
-            // sane fallback if nothing is exposed
-            fov = 40;
+          // In AR, ignore scaling here and let CSS handle it
+          const arStatus = viewer.getAttribute("ar-status");
+          if (arStatus && arStatus !== "not-presenting" && arStatus !== "failed") {
+            return;
           }
 
-          // Smaller FOV = zoomed in -> BIGGER hotspots
-          const minFov = 20; // "zoomed in"
-          const maxFov = 60; // "zoomed out"
+          const orbit = viewer.getCameraOrbit();
+          const radius = orbit.radius; // smaller radius = more zoomed in
 
-          const t = clamp((fov - minFov) / (maxFov - minFov), 0, 1);
+          // Tune these numbers for your model:
+          const minRadius = 4;   // very close
+          const maxRadius = 18;  // far away
 
-          const minScale = 1.1; // far away
-          const maxScale = 2.4; // close up
+          const t = clamp((radius - minRadius) / (maxRadius - minRadius), 0, 1);
+
+          // When zoomed in (small radius), scale should be larger
+          const minScale = 1.0; // far
+          const maxScale = 2.2; // close
 
           const scale = maxScale - (maxScale - minScale) * t;
 
           viewer
             .querySelectorAll(".hotspot")
-            .forEach((el) =>
-              el.style.setProperty("--hotspot-scale", scale.toFixed(3))
-            );
+            .forEach((el) => el.style.setProperty("--hotspot-scale", scale));
         }
 
         function initHotspotScaling() {
-          // Initial scale when model is ready
-          const onModelReady = () => {
+          if (viewer.complete) {
             updateHotspotScale();
-          };
-
-          if (viewer.readyState === "complete") {
-            onModelReady();
           } else {
-            viewer.addEventListener("load", onModelReady, { once: true });
+            viewer.addEventListener("load", updateHotspotScale, { once: true });
           }
 
-          // Update whenever the camera changes (orbit/zoom)
           viewer.addEventListener("camera-change", updateHotspotScale);
         }
 
