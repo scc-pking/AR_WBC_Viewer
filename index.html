@@ -152,12 +152,54 @@
       .hotspot:hover .hotspot-description {
         display: inline;
       }
-         </style>
+
+      /* Tuner panel */
+      #hotspot-controls {
+        position: fixed;
+        inset: auto 0 0 auto;
+        width: 320px;
+        max-height: 60vh;
+        overflow-y: auto;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.85);
+        color: #fff;
+        font-size: 12px;
+        z-index: 10000;
+      }
+
+      #hotspot-controls h3 {
+        margin: 0 0 8px;
+        font-size: 14px;
+      }
+
+      #hotspot-controls label {
+        display: block;
+        margin: 3px 0;
+      }
+
+      #hotspot-controls input[type="range"] {
+        width: 100%;
+      }
+
+      .hotspot-group {
+        margin-bottom: 10px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 6px;
+      }
+
+      .hotspot-readout {
+        margin-top: 3px;
+        font-family: monospace;
+        font-size: 11px;
+        opacity: 0.8;
+      }
+    </style>
   </head>
 
   <body>
+    <!-- MODEL VIEWER -->
     <model-viewer
-      id="cellViewer"
+      id="cell-viewer"
       src="model.glb"
       ios-src="model.usdz"
       shadow-intensity="1"
@@ -165,277 +207,261 @@
       camera-controls
       touch-action="pan-y"
       alt="A 3D cell model with hotspots"
-      exposure="1.1"
     >
-      <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>AR Model Viewer</title>
+      <!-- AR button -->
+      <button slot="ar-button" id="ar-button">
+        View in your space
+      </button>
 
-    <!-- model-viewer web component -->
-    <script
-      type="module"
-      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
+      <!-- Nucleus -->
+      <button
+        slot="hotspot-nucleus"
+        class="hotspot"
+        data-position="-8.332 1.103 -1.368"
+        data-normal="0.973 -0.164 0.164"
+        data-visibility-attribute="visible"
+      >
+        <div class="hotspot-label">
+          Nucleus
+          <span class="hotspot-description">
+            Contains genetic material and controls cell activities.
+          </span>
+        </div>
+      </button>
+
+      <!-- Golgi Complex -->
+      <button
+        slot="hotspot-golgi"
+        class="hotspot"
+        data-position="5.767 5.383 3.847"
+        data-normal="-0.679 -0.519 -0.519"
+        data-visibility-attribute="visible"
+      >
+        <div class="hotspot-label">
+          Golgi Complex
+          <span class="hotspot-description">
+            Modifies, sorts, and packages proteins and lipids.
+          </span>
+        </div>
+      </button>
+
+      <!-- Mitochondrion -->
+      <button
+        slot="hotspot-mito"
+        class="hotspot"
+        data-position="7.916 3.887 0.024"
+        data-normal="-0.842 -0.507 -0.181"
+        data-visibility-attribute="visible"
+      >
+        <div class="hotspot-label">
+          Mitochondrion
+          <span class="hotspot-description">
+            Produces ATP, the cell’s energy currency.
+          </span>
+        </div>
+      </button>
+
+      <!-- Ribosome -->
+      <button
+        slot="hotspot-ribosome"
+        class="hotspot"
+        data-position="4.136 0.694 -7.623"
+        data-normal="-0.507 -0.181 0.842"
+        data-visibility-attribute="visible"
+      >
+        <div class="hotspot-label">
+          Ribosome
+          <span class="hotspot-description">
+            Site of protein synthesis.
+          </span>
+        </div>
+      </button>
+
+      <!-- Primary Granules -->
+      <button
+        slot="hotspot-granules"
+        class="hotspot"
+        data-position="-3.712 -1.263 7.749"
+        data-normal="0.521 0.181 -0.834"
+        data-visibility-attribute="visible"
+      >
+        <div class="hotspot-label">
+          Primary Granules
+          <span class="hotspot-description">
+            Vesicles containing enzymes/defense molecules.
+          </span>
+        </div>
+      </button>
+
+      <div id="ar-prompt">
+        <img src="hand.png" alt="Move phone to find surface" />
+      </div>
+
+      <button id="ar-failure">AR is not tracking!</button>
+    </model-viewer>
+
+    <!-- HOTSPOT TUNER PANEL -->
+    <div id="hotspot-controls">
+      <h3>Hotspot Position Tuner</h3>
+
+      <!-- Nucleus -->
+      <div class="hotspot-group" data-hotspot="hotspot-nucleus">
+        <strong>Nucleus</strong>
+        <label>
+          X
+          <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
+        </label>
+        <label>
+          Y
+          <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
+        </label>
+        <label>
+          Z
+          <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
+        </label>
+        <div class="hotspot-readout"></div>
+      </div>
+
+      <!-- Golgi -->
+      <div class="hotspot-group" data-hotspot="hotspot-golgi">
+        <strong>Golgi Complex</strong>
+        <label>
+          X
+          <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
+        </label>
+        <label>
+          Y
+          <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
+        </label>
+        <label>
+          Z
+          <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
+        </label>
+        <div class="hotspot-readout"></div>
+      </div>
+
+      <!-- Mitochondrion -->
+      <div class="hotspot-group" data-hotspot="hotspot-mito">
+        <strong>Mitochondrion</strong>
+        <label>
+          X
+          <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
+        </label>
+        <label>
+          Y
+          <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
+        </label>
+        <label>
+          Z
+          <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
+        </label>
+        <div class="hotspot-readout"></div>
+      </div>
+
+      <!-- Ribosome -->
+      <div class="hotspot-group" data-hotspot="hotspot-ribosome">
+        <strong>Ribosome</strong>
+        <label>
+          X
+          <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
+        </label>
+        <label>
+          Y
+          <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
+        </label>
+        <label>
+          Z
+          <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
+        </label>
+        <div class="hotspot-readout"></div>
+      </div>
+
+      <!-- Primary Granules -->
+      <div class="hotspot-group" data-hotspot="hotspot-granules">
+        <strong>Primary Granules</strong>
+        <label>
+          X
+          <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
+        </label>
+        <label>
+          Y
+          <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
+        </label>
+        <label>
+          Z
+          <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
+        </label>
+        <div class="hotspot-readout"></div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const modelViewer = document.getElementById("cell-viewer");
+        const groups = document.querySelectorAll(".hotspot-group");
+
+        // Helper: parse "x y z" into [x,y,z]
+        const parseVec3 = (str) =>
+          str.split(/\s+/).map((v) => parseFloat(v || "0"));
+
+        // Helper: update DOM attributes + readout
+        function setHotspotPosition(slotName, x, y, z) {
+          const hotspot = modelViewer.querySelector(
+            `[slot="${slotName}"]`
+          );
+          if (!hotspot) return;
+
+          const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
+          hotspot.setAttribute("data-position", posString);
+
+          // Update readout in the tuner panel
+          const group = document.querySelector(
+            `.hotspot-group[data-hotspot="${slotName}"]`
+          );
+          if (group) {
+            const readout = group.querySelector(".hotspot-readout");
+            if (readout) {
+              readout.textContent = `data-position="${posString}"`;
+            }
+          }
+        }
+
+        // Initialize sliders from current hotspot positions
+        groups.forEach((group) => {
+          const slotName = group.getAttribute("data-hotspot");
+          const hotspot = modelViewer.querySelector(
+            `[slot="${slotName}"]`
+          );
+          if (!hotspot) return;
+
+          const [x0, y0, z0] = parseVec3(
+            hotspot.getAttribute("data-position") || "0 0 0"
+          );
+
+          const xSlider = group.querySelector(".hotspot-x");
+          const ySlider = group.querySelector(".hotspot-y");
+          const zSlider = group.querySelector(".hotspot-z");
+
+          xSlider.value = x0;
+          ySlider.value = y0;
+          zSlider.value = z0;
+
+          setHotspotPosition(slotName, x0, y0, z0);
+
+          const onInput = () => {
+            const x = parseFloat(xSlider.value);
+            const y = parseFloat(ySlider.value);
+            const z = parseFloat(zSlider.value);
+            setHotspotPosition(slotName, x, y, z);
+          };
+
+          xSlider.addEventListener("input", onInput);
+          ySlider.addEventListener("input", onInput);
+          zSlider.addEventListener("input", onInput);
+        });
+
+        console.log("Hotspot tuner initialized");
+      });
     </script>
-
-    <style>
-      :not(:defined) > * {
-        display: none;
-      }
-
-      body {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          sans-serif;
-      }
-
-      model-viewer {
-        position: fixed;
-        inset: 0;
-        width: 100vw;
-        height: 100dvh;
-        background-color: #111;
-        overflow: hidden;
-      }
-
-      #ar-button {
-        position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        bottom: calc(env(safe-area-inset-bottom) + 20px);
-        z-index: 9999;
-
-        background-color: #fff;
-        padding: 0 26px;
-        min-width: 220px;
-        height: 48px;
-        line-height: 48px;
-
-        font-size: 16px;
-        font-weight: 500;
-        color: #4285f4;
-
-        border-radius: 24px;
-        border: 1px solid #dadce0;
-        white-space: nowrap;
-      }
-
-      #ar-button:active {
-        background-color: #e8eaed;
-      }
-
-      #ar-button:focus {
-        outline: none;
-      }
-
-      #ar-button:focus-visible {
-        outline: 1px solid #4285f4;
-      }
-
-      @keyframes circle {
-        from {
-          transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg);
-        }
-        to {
-          transform: translateX(-50%) rotate(360deg) translateX(50px)
-            rotate(-360deg);
-        }
-      }
-
-      @keyframes elongate {
-        from {
-          transform: translateX(100px);
-        }
-        to {
-          transform: translateX(-100px);
-        }
-      }
-
-      model-viewer > #ar-prompt {
-        position: absolute;
-        left: 50%;
-        bottom: 175px;
-        animation: elongate 2s infinite ease-in-out alternate;
-        display: none;
-      }
-
-      model-viewer[ar-status="session-started"] > #ar-prompt {
-        display: block;
-      }
-
-      model-viewer > #ar-prompt > img {
-        animation: circle 4s linear infinite;
-      }
-
-      model-viewer > #ar-failure {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        bottom: 175px;
-        display: none;
-      }
-
-      model-viewer[ar-tracking="not-tracking"] > #ar-failure {
-        display: block;
-      }
-
-      .hotspot {
-        border: none;
-        padding: 0;
-        background: none;
-        cursor: pointer;
-        transform: translate(-50%, -50%);
-      }
-
-      .hotspot-label {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 10px;
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.75);
-        color: #fff;
-        font-size: 12px;
-        line-height: 1.3;
-      }
-
-      .hotspot-label::before {
-        content: "";
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #4caf50;
-      }
-
-      .hotspot-description {
-        display: none;
-        margin-left: 4px;
-        font-size: 11px;
-        opacity: 0.9;
-      }
-
-      .hotspot:hover .hotspot-description {
-        display: inline;
-      }
-         </style>
-  </head>
-
-  <body>
-    <model-viewer
-<div id="hotspot-controls"
-     style="position: fixed; inset: auto 0 0 auto; width: 320px; max-height: 60vh; overflow-y: auto; padding: 12px; background: rgba(0,0,0,0.85); color: #fff; font-family: system-ui; font-size: 12px; z-index: 10000;">
-  <h3 style="margin: 0 0 8px; font-size: 14px;">Hotspot Position Tuner</h3>
-
-  <!-- Nucleus -->
-  <div data-hotspot="hotspot-nucleus" style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 6px;">
-    <strong>Nucleus</strong>
-    <label>
-      X
-      <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
-    </label>
-    <label>
-      Y
-      <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
-    </label>
-    <label>
-      Z
-      <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
-    </label>
-    <div class="hotspot-readout"></div>
-  </div>
-
-  <!-- Golgi -->
-  <div data-hotspot="hotspot-golgi" style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 6px;">
-    <strong>Golgi Complex</strong>
-    <label>
-      X
-      <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
-    </label>
-    <label>
-      Y
-      <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
-    </label>
-    <label>
-      Z
-      <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
-    </label>
-    <div class="hotspot-readout"></div>
-  </div>
-
-  <!-- Mitochondrion -->
-  <div data-hotspot="hotspot-mito" style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 6px;">
-    <strong>Mitochondrion</strong>
-    <label>
-      X
-      <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
-    </label>
-    <label>
-      Y
-      <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
-    </label>
-    <label>
-      Z
-      <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
-    </label>
-    <div class="hotspot-readout"></div>
-  </div>
-
-  <!-- Ribosome -->
-  <div data-hotspot="hotspot-ribosome" style="margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 6px;">
-    <strong>Ribosome</strong>
-    <label>
-      X
-      <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
-    </label>
-    <label>
-      Y
-      <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
-    </label>
-    <label>
-      Z
-      <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
-    </label>
-    <div class="hotspot-readout"></div>
-  </div>
-
-  <!-- Primary Granules -->
-  <div data-hotspot="hotspot-granules" style="margin-bottom: 4px;">
-    <strong>Primary Granules</strong>
-    <label>
-      X
-      <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
-    </label>
-    <label>
-      Y
-      <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
-    </label>
-    <label>
-      Z
-      <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
-    </label>
-    <div class="hotspot-readout"></div>
-  </div>
-</div>
-
-      <div id="ar-prompt">
-        <img src="hand.png" alt="Move phone to find surface" />
-      </div>
-
-      <button id="ar-failure">AR is not tracking!</button>
-    </model-viewer>
-  </body>
-</html>
-
-
-      <div id="ar-prompt">
-        <img src="hand.png" alt="Move phone to find surface" />
-      </div>
-
-      <button id="ar-failure">AR is not tracking!</button>
-    </model-viewer>
   </body>
 </html>
