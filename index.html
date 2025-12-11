@@ -128,7 +128,7 @@
         transform: translate(-50%, -50%) scale(var(--hotspot-scale));
       }
 
-      /* Small dot at exact 3D anchor */
+      /* small dot exactly at the 3D anchor */
       .hotspot-anchor-dot {
         position: absolute;
         left: 50%;
@@ -141,7 +141,7 @@
         box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
       }
 
-      /* Vertical line from anchor up to label */
+      /* vertical line that stems from the anchor up to the label */
       .hotspot-line {
         position: absolute;
         left: 50%;
@@ -153,7 +153,7 @@
         opacity: 0.8;
       }
 
-      /* Label above the line */
+      /* offset label above the anchor + line */
       .hotspot-label {
         position: absolute;
         left: 50%;
@@ -171,7 +171,7 @@
         white-space: nowrap;
       }
 
-      /* no extra dot in label now that we have anchor-dot */
+      /* no extra green dot inside the label now that we have anchor dot */
       .hotspot-label::before {
         content: none;
       }
@@ -187,7 +187,7 @@
         display: inline;
       }
 
-      /* AR MODE: shrink hotspots so they aren't gigantic in AR */
+      /* AR MODE: shrink hotspots, hide descriptions */
       model-viewer[ar-status="session-started"] .hotspot {
         --hotspot-scale: 0.55;
       }
@@ -202,15 +202,17 @@
         height: 8px;
       }
 
+      model-viewer[ar-status="session-started"] .hotspot-line {
+        height: 30px;
+      }
+
       model-viewer[ar-status="session-started"] .hotspot-description {
         display: none !important;
       }
 
       /* ========================
          HOTSPOT POSITION TUNER PANEL
-         (for editing only)
          ======================== */
-
       #hotspot-controls {
         position: fixed;
         right: 0;
@@ -372,7 +374,7 @@
       <button id="ar-failure">AR is not tracking!</button>
     </model-viewer>
 
-    <!-- HOTSPOT POSITION TUNER PANEL (VISIBLE) -->
+    <!-- HOTSPOT POSITION TUNER PANEL -->
     <div id="hotspot-controls">
       <h3>Hotspot Position Tuner</h3>
 
@@ -466,45 +468,34 @@
       window.addEventListener("DOMContentLoaded", () => {
         const viewer = document.getElementById("cellViewer");
 
-        // ---------- HOTSPOT REPOSITIONING (SLIDERS) ----------
+        /* -----------------------
+           HOTSPOT POSITION TUNER
+           ----------------------- */
 
-        function parsePosition(str) {
-          const parts = (str || "0 0 0").trim().split(/\s+/);
-          const nums = parts.map((p) => parseFloat(p));
-          while (nums.length < 3) nums.push(0);
-          return nums.slice(0, 3);
-        }
+        // Read initial positions from the actual data-position attributes
+        const initialPositions = {};
+        document.querySelectorAll(".hotspot").forEach((el) => {
+          const id = el.id;
+          const posAttr = el.getAttribute("data-position") || "0 0 0";
+          const [xs, ys, zs] = posAttr.split(/\s+/);
+          initialPositions[id] = [
+            parseFloat(xs) || 0,
+            parseFloat(ys) || 0,
+            parseFloat(zs) || 0,
+          ];
+        });
 
         function setHotspotPosition(hotspotId, x, y, z) {
           const el = document.getElementById(hotspotId);
           if (!el) return;
-
           const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
           el.setAttribute("data-position", posString);
-
-          // Tell model-viewer to update the 3D hotspot in realtime
-          if (viewer.queryHotspot) {
-            const hotspot = viewer.queryHotspot(hotspotId);
-            if (hotspot) {
-              hotspot.position = { x, y, z };
-            }
-          }
-
           // console.log(`[${hotspotId}] -> ${posString}`);
         }
 
         function initSection(sectionEl) {
           const hotspotId = sectionEl.getAttribute("data-hotspot");
-          const hotspotEl = document.getElementById(hotspotId);
-
-          let x0 = 0,
-            y0 = 0,
-            z0 = 0;
-          if (hotspotEl) {
-            [x0, y0, z0] = parsePosition(
-              hotspotEl.getAttribute("data-position")
-            );
-          }
+          const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
 
           const xSlider = sectionEl.querySelector(".hotspot-x");
           const ySlider = sectionEl.querySelector(".hotspot-y");
@@ -531,17 +522,21 @@
           ySlider.addEventListener("input", update);
           zSlider.addEventListener("input", update);
 
-          // initialize
+          // Set initial UI + hotspot position
           update();
         }
 
         function initAllSections() {
-          document
-            .querySelectorAll("#hotspot-controls .hotspot-section")
-            .forEach(initSection);
+          const controls = document.getElementById("hotspot-controls");
+          if (!controls) return;
+          controls
+            .querySelectorAll(".hotspot-section")
+            .forEach((section) => initSection(section));
         }
 
-        // ---------- HOTSPOT SCALE WITH ZOOM (3D VIEW ONLY) ----------
+        /* -----------------------
+           HOTSPOT SCALE WITH ZOOM
+           ----------------------- */
 
         function clamp(value, min, max) {
           return Math.max(min, Math.min(max, value));
@@ -549,22 +544,17 @@
 
         function updateHotspotScale() {
           const arStatus = viewer.getAttribute("ar-status");
-          // In AR, rely on CSS-only scaling above
           if (arStatus && arStatus !== "not-presenting" && arStatus !== "failed") {
-            return;
+            return; // let AR CSS override
           }
 
           const orbit = viewer.getCameraOrbit();
-          const radius = orbit.radius;
+          const radius = orbit.radius; // smaller = more zoomed in
 
-          const minRadius = 4; // close
-          const maxRadius = 18; // far
+          const minRadius = 4;
+          const maxRadius = 18;
 
-          const t = clamp(
-            (radius - minRadius) / (maxRadius - minRadius),
-            0,
-            1
-          );
+          const t = clamp((radius - minRadius) / (maxRadius - minRadius), 0, 1);
 
           const minScale = 1.0; // far
           const maxScale = 2.2; // close
@@ -577,17 +567,13 @@
         }
 
         function initHotspotScaling() {
-          if (viewer.complete) {
-            updateHotspotScale();
-          } else {
-            viewer.addEventListener("load", updateHotspotScale, { once: true });
-          }
-
+          viewer.addEventListener("load", updateHotspotScale, { once: true });
           viewer.addEventListener("camera-change", updateHotspotScale);
+          // run once just in case
+          updateHotspotScale();
         }
 
-        // ---------- INIT ----------
-
+        // Initialize
         initAllSections();
         initHotspotScaling();
       });
