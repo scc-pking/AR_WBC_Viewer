@@ -468,15 +468,6 @@
   window.addEventListener("DOMContentLoaded", () => {
     const viewer = document.getElementById("cellViewer");
 
-    // Hotspot id -> initial [x, y, z]
-    const initialPositions = {
-      "hotspot-nucleus": [-8.332, 1.103, -1.368],
-      "hotspot-golgi": [5.767, 5.383, 3.847],
-      "hotspot-mito": [7.916, 3.887, 0.024],
-      "hotspot-ribosome": [4.136, 0.694, -7.623],
-      "hotspot-granules": [-3.712, -1.263, 7.749],
-    };
-
     function setHotspotPosition(hotspotId, x, y, z) {
       const el = document.getElementById(hotspotId);
       if (!el) return;
@@ -500,7 +491,7 @@
 
     function initSection(sectionEl) {
       const hotspotId = sectionEl.getAttribute("data-hotspot");
-      const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
+      //const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
 
       const xSlider = sectionEl.querySelector(".hotspot-x");
       const ySlider = sectionEl.querySelector(".hotspot-y");
