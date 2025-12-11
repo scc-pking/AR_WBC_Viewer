@@ -128,7 +128,7 @@
         transform: translate(-50%, -50%) scale(var(--hotspot-scale));
       }
 
-      /* dot at anchor */
+      /* Small dot at exact 3D anchor */
       .hotspot-anchor-dot {
         position: absolute;
         left: 50%;
@@ -141,18 +141,19 @@
         box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
       }
 
-      /* vertical line up from anchor */
+      /* Vertical line from anchor up to label */
       .hotspot-line {
         position: absolute;
         left: 50%;
         top: 50%;
         width: 2px;
-        height: 40px; /* tweak as needed */
+        height: 40px; /* tweak length as needed */
         background: #4caf50;
-        transform: translate(-50%, -100%);
+        transform: translate(-50%, -100%); /* go upward from dot */
         opacity: 0.8;
       }
 
+      /* Label above the line */
       .hotspot-label {
         position: absolute;
         left: 50%;
@@ -170,7 +171,7 @@
         white-space: nowrap;
       }
 
-      /* Remove inner green dot now that we have separate anchor-dot */
+      /* no extra dot in label now that we have anchor-dot */
       .hotspot-label::before {
         content: none;
       }
@@ -186,7 +187,7 @@
         display: inline;
       }
 
-      /* AR MODE: shrink hotspots & hide descriptions */
+      /* AR MODE: shrink hotspots so they aren't gigantic in AR */
       model-viewer[ar-status="session-started"] .hotspot {
         --hotspot-scale: 0.55;
       }
@@ -196,9 +197,9 @@
         font-size: 12px;
       }
 
-      model-viewer[ar-status="session-started"] .hotspot-label::before {
-        width: 10px;
-        height: 10px;
+      model-viewer[ar-status="session-started"] .hotspot-anchor-dot {
+        width: 8px;
+        height: 8px;
       }
 
       model-viewer[ar-status="session-started"] .hotspot-description {
@@ -206,8 +207,10 @@
       }
 
       /* ========================
-         HOTSPOT TUNER PANEL
+         HOTSPOT POSITION TUNER PANEL
+         (for editing only)
          ======================== */
+
       #hotspot-controls {
         position: fixed;
         right: 0;
@@ -369,7 +372,7 @@
       <button id="ar-failure">AR is not tracking!</button>
     </model-viewer>
 
-    <!-- HOTSPOT POSITION TUNER PANEL (NOW IN BODY, NOT COMMENTED) -->
+    <!-- HOTSPOT POSITION TUNER PANEL (VISIBLE) -->
     <div id="hotspot-controls">
       <h3>Hotspot Position Tuner</h3>
 
@@ -463,65 +466,45 @@
       window.addEventListener("DOMContentLoaded", () => {
         const viewer = document.getElementById("cellViewer");
 
-        // ---------------- HOTSPOT SCALING WITH ZOOM ----------------
-        function clamp(value, min, max) {
-          return Math.max(min, Math.min(max, value));
+        // ---------- HOTSPOT REPOSITIONING (SLIDERS) ----------
+
+        function parsePosition(str) {
+          const parts = (str || "0 0 0").trim().split(/\s+/);
+          const nums = parts.map((p) => parseFloat(p));
+          while (nums.length < 3) nums.push(0);
+          return nums.slice(0, 3);
         }
-
-        function updateHotspotScale() {
-          const arStatus = viewer.getAttribute("ar-status");
-          if (arStatus && arStatus !== "not-presenting" && arStatus !== "failed") {
-            return; // AR scaling handled via CSS
-          }
-
-          const orbit = viewer.getCameraOrbit();
-          const radius = orbit.radius;
-
-          const minRadius = 4;
-          const maxRadius = 18;
-
-          const t = clamp((radius - minRadius) / (maxRadius - minRadius), 0, 1);
-
-          const minScale = 1.0;
-          const maxScale = 2.2;
-
-          const scale = maxScale - (maxScale - minScale) * t;
-
-          viewer
-            .querySelectorAll(".hotspot")
-            .forEach((el) => el.style.setProperty("--hotspot-scale", scale));
-        }
-
-        function initHotspotScaling() {
-          if (viewer.complete) {
-            updateHotspotScale();
-          } else {
-            viewer.addEventListener("load", updateHotspotScale, { once: true });
-          }
-
-          viewer.addEventListener("camera-change", updateHotspotScale);
-        }
-
-        // ---------------- HOTSPOT POSITION SLIDERS ----------------
-        const initialPositions = {
-          "hotspot-nucleus": [-1.1, 1.9, -2.6],
-          "hotspot-golgi": [1.0, 0.6, -0.7],
-          "hotspot-mito": [3.2, 0.2, -4.3],
-          "hotspot-ribosome": [1.7, -0.6, -4.7],
-          "hotspot-granules": [-1.9, -3.0, 5.4]
-        };
 
         function setHotspotPosition(hotspotId, x, y, z) {
           const el = document.getElementById(hotspotId);
           if (!el) return;
+
           const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
           el.setAttribute("data-position", posString);
+
+          // Tell model-viewer to update the 3D hotspot in realtime
+          if (viewer.queryHotspot) {
+            const hotspot = viewer.queryHotspot(hotspotId);
+            if (hotspot) {
+              hotspot.position = { x, y, z };
+            }
+          }
+
           // console.log(`[${hotspotId}] -> ${posString}`);
         }
 
         function initSection(sectionEl) {
           const hotspotId = sectionEl.getAttribute("data-hotspot");
-          const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
+          const hotspotEl = document.getElementById(hotspotId);
+
+          let x0 = 0,
+            y0 = 0,
+            z0 = 0;
+          if (hotspotEl) {
+            [x0, y0, z0] = parsePosition(
+              hotspotEl.getAttribute("data-position")
+            );
+          }
 
           const xSlider = sectionEl.querySelector(".hotspot-x");
           const ySlider = sectionEl.querySelector(".hotspot-y");
@@ -548,6 +531,7 @@
           ySlider.addEventListener("input", update);
           zSlider.addEventListener("input", update);
 
+          // initialize
           update();
         }
 
@@ -557,9 +541,55 @@
             .forEach(initSection);
         }
 
-        // Init
-        initHotspotScaling();
+        // ---------- HOTSPOT SCALE WITH ZOOM (3D VIEW ONLY) ----------
+
+        function clamp(value, min, max) {
+          return Math.max(min, Math.min(max, value));
+        }
+
+        function updateHotspotScale() {
+          const arStatus = viewer.getAttribute("ar-status");
+          // In AR, rely on CSS-only scaling above
+          if (arStatus && arStatus !== "not-presenting" && arStatus !== "failed") {
+            return;
+          }
+
+          const orbit = viewer.getCameraOrbit();
+          const radius = orbit.radius;
+
+          const minRadius = 4; // close
+          const maxRadius = 18; // far
+
+          const t = clamp(
+            (radius - minRadius) / (maxRadius - minRadius),
+            0,
+            1
+          );
+
+          const minScale = 1.0; // far
+          const maxScale = 2.2; // close
+
+          const scale = maxScale - (maxScale - minScale) * t;
+
+          viewer
+            .querySelectorAll(".hotspot")
+            .forEach((el) => el.style.setProperty("--hotspot-scale", scale));
+        }
+
+        function initHotspotScaling() {
+          if (viewer.complete) {
+            updateHotspotScale();
+          } else {
+            viewer.addEventListener("load", updateHotspotScale, { once: true });
+          }
+
+          viewer.addEventListener("camera-change", updateHotspotScale);
+        }
+
+        // ---------- INIT ----------
+
         initAllSections();
+        initHotspotScaling();
       });
     </script>
   </body>
