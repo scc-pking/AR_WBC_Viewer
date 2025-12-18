@@ -4,23 +4,22 @@
     <meta charset="UTF-8" />
     <title>AR Model Viewer with Hotspots</title>
 
-    <!-- model-viewer web component -->
     <script
       type="module"
-      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
-    </script>
+      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
+    ></script>
 
     <style>
-      :not(:defined) > * {
-        display: none;
-      }
+      :not(:defined) > * { display: none; }
 
-      body {
+      html, body {
         margin: 0;
         padding: 0;
-        overflow: hidden;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          sans-serif;
+        width: 100%;
+        height: 100%;
+        overflow: hidden; /* kill page scroll */
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #111;
       }
 
       model-viewer {
@@ -53,36 +52,17 @@
         border: 1px solid #dadce0;
         white-space: nowrap;
       }
-
-      #ar-button:active {
-        background-color: #e8eaed;
-      }
-
-      #ar-button:focus {
-        outline: none;
-      }
-
-      #ar-button:focus-visible {
-        outline: 1px solid #4285f4;
-      }
+      #ar-button:active { background-color: #e8eaed; }
+      #ar-button:focus { outline: none; }
+      #ar-button:focus-visible { outline: 1px solid #4285f4; }
 
       @keyframes circle {
-        from {
-          transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg);
-        }
-        to {
-          transform: translateX(-50%) rotate(360deg) translateX(50px)
-            rotate(-360deg);
-        }
+        from { transform: translateX(-50%) rotate(0deg) translateX(50px) rotate(0deg); }
+        to { transform: translateX(-50%) rotate(360deg) translateX(50px) rotate(-360deg); }
       }
-
       @keyframes elongate {
-        from {
-          transform: translateX(100px);
-        }
-        to {
-          transform: translateX(-100px);
-        }
+        from { transform: translateX(100px); }
+        to { transform: translateX(-100px); }
       }
 
       model-viewer > #ar-prompt {
@@ -92,14 +72,8 @@
         animation: elongate 2s infinite ease-in-out alternate;
         display: none;
       }
-
-      model-viewer[ar-status="session-started"] > #ar-prompt {
-        display: block;
-      }
-
-      model-viewer > #ar-prompt > img {
-        animation: circle 4s linear infinite;
-      }
+      model-viewer[ar-status="session-started"] > #ar-prompt { display: block; }
+      model-viewer > #ar-prompt > img { animation: circle 4s linear infinite; }
 
       model-viewer > #ar-failure {
         position: absolute;
@@ -108,27 +82,26 @@
         bottom: 175px;
         display: none;
       }
-
-      model-viewer[ar-tracking="not-tracking"] > #ar-failure {
-        display: block;
-      }
+      model-viewer[ar-tracking="not-tracking"] > #ar-failure { display: block; }
 
       /* ========================
          HOTSPOTS
          ======================== */
 
-      /* Center pivot at hotspot center & apply scale from CSS var */
       .hotspot {
         border: none;
         padding: 0;
         background: none;
         cursor: pointer;
         position: relative;
+
+        /* JS writes this var in 3D mode */
         --hotspot-scale: 1;
+
+        /* IMPORTANT: center pivot at the anchor */
         transform: translate(-50%, -50%) scale(var(--hotspot-scale));
       }
 
-      /* small dot exactly at the 3D anchor */
       .hotspot-anchor-dot {
         position: absolute;
         left: 50%;
@@ -141,24 +114,22 @@
         box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
       }
 
-      /* vertical line that stems from the anchor up to the label */
       .hotspot-line {
         position: absolute;
         left: 50%;
         top: 50%;
         width: 2px;
-        height: 40px; /* tweak length as needed */
+        height: 40px;
         background: #4caf50;
-        transform: translate(-50%, -100%); /* go upward from dot */
+        transform: translate(-50%, -100%);
         opacity: 0.8;
       }
 
-      /* offset label above the anchor + line */
       .hotspot-label {
         position: absolute;
         left: 50%;
         top: 50%;
-        transform: translate(-50%, calc(-100% - 48px)); /* above the line */
+        transform: translate(-50%, calc(-100% - 48px));
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -171,10 +142,7 @@
         white-space: nowrap;
       }
 
-      /* no extra green dot inside the label now that we have anchor dot */
-      .hotspot-label::before {
-        content: none;
-      }
+      .hotspot-label::before { content: none; }
 
       .hotspot-description {
         display: none;
@@ -182,36 +150,17 @@
         font-size: 13px;
         opacity: 0.9;
       }
+      .hotspot:hover .hotspot-description { display: inline; }
 
-      .hotspot:hover .hotspot-description {
-        display: inline;
-      }
-
-      /* AR MODE: shrink hotspots, hide descriptions */
-      model-viewer[ar-status="session-started"] .hotspot {
-        --hotspot-scale: 0.55;
-      }
-
-      model-viewer[ar-status="session-started"] .hotspot-label {
-        padding: 6px 9px;
-        font-size: 12px;
-      }
-
-      model-viewer[ar-status="session-started"] .hotspot-anchor-dot {
-        width: 8px;
-        height: 8px;
-      }
-
-      model-viewer[ar-status="session-started"] .hotspot-line {
-        height: 30px;
-      }
-
-      model-viewer[ar-status="session-started"] .hotspot-description {
-        display: none !important;
-      }
+      /* AR MODE: smaller hotspots + hide descriptions */
+      model-viewer[ar-status="session-started"] .hotspot { --hotspot-scale: 0.55; }
+      model-viewer[ar-status="session-started"] .hotspot-label { padding: 6px 9px; font-size: 12px; }
+      model-viewer[ar-status="session-started"] .hotspot-anchor-dot { width: 8px; height: 8px; }
+      model-viewer[ar-status="session-started"] .hotspot-line { height: 30px; }
+      model-viewer[ar-status="session-started"] .hotspot-description { display: none !important; }
 
       /* ========================
-         HOTSPOT POSITION TUNER PANEL
+         HOTSPOT TUNER PANEL
          ======================== */
       #hotspot-controls {
         position: fixed;
@@ -225,38 +174,57 @@
         color: #fff;
         font-size: 12px;
         z-index: 10000;
+
+        /* default hidden; toggle with "T" */
+        display: none;
+      }
+      #hotspot-controls.is-open { display: block; }
+
+      #hotspot-controls h3 { margin: 0 0 8px; font-size: 14px; }
+      #hotspot-controls label { display: block; margin: 2px 0; }
+      #hotspot-controls input[type="range"] { width: 100%; }
+      .hotspot-section { margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 6px; }
+      .hotspot-readout { margin-top: 2px; font-family: monospace; font-size: 11px; }
+
+      /* ========================
+         AR ROTATION SLIDER (USER-FACING)
+         ======================== */
+      #ar-rotate-bar {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: calc(env(safe-area-inset-bottom) + 14px);
+        z-index: 10001;
+
+        width: min(560px, calc(100vw - 24px));
+        padding: 10px 12px;
+        border-radius: 16px;
+
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+
+        display: none; /* only in AR */
+        gap: 10px;
+        align-items: center;
       }
 
-      #hotspot-controls h3 {
-        margin: 0 0 8px;
-        font-size: 14px;
+      model-viewer[ar-status="session-started"] ~ #ar-rotate-bar {
+        display: flex;
       }
 
-      #hotspot-controls label {
-        display: block;
-        margin: 2px 0;
+      #ar-rotate-bar .label {
+        font-size: 12px;
+        opacity: 0.95;
+        white-space: nowrap;
       }
 
-      #hotspot-controls input[type="range"] {
+      #ar-rotate {
         width: 100%;
-      }
-
-      .hotspot-section {
-        margin-bottom: 10px;
-        border-bottom: 1px solid #444;
-        padding-bottom: 6px;
-      }
-
-      .hotspot-readout {
-        margin-top: 2px;
-        font-family: monospace;
-        font-size: 11px;
       }
     </style>
   </head>
 
   <body>
-    <!-- MAIN MODEL VIEWER -->
     <model-viewer
       id="cellViewer"
       src="model.glb"
@@ -273,9 +241,7 @@
       min-camera-orbit="auto auto 80%"
       max-camera-orbit="auto auto 140%"
     >
-      <button slot="ar-button" id="ar-button">
-        View in your space
-      </button>
+      <button slot="ar-button" id="ar-button">View in your space</button>
 
       <!-- Nucleus -->
       <button
@@ -289,9 +255,7 @@
         <div class="hotspot-line"></div>
         <div class="hotspot-label">
           Nucleus
-          <span class="hotspot-description">
-            Contains genetic material and controls cell activities.
-          </span>
+          <span class="hotspot-description">Contains genetic material and controls cell activities.</span>
         </div>
       </button>
 
@@ -307,9 +271,7 @@
         <div class="hotspot-line"></div>
         <div class="hotspot-label">
           Golgi Complex
-          <span class="hotspot-description">
-            Packages and modifies proteins and lipids.
-          </span>
+          <span class="hotspot-description">Packages and modifies proteins and lipids.</span>
         </div>
       </button>
 
@@ -325,9 +287,7 @@
         <div class="hotspot-line"></div>
         <div class="hotspot-label">
           Mitochondrion
-          <span class="hotspot-description">
-            Produces energy (ATP) for the cell.
-          </span>
+          <span class="hotspot-description">Produces energy (ATP) for the cell.</span>
         </div>
       </button>
 
@@ -343,9 +303,7 @@
         <div class="hotspot-line"></div>
         <div class="hotspot-label">
           Ribosome
-          <span class="hotspot-description">
-            Site of protein synthesis.
-          </span>
+          <span class="hotspot-description">Site of protein synthesis.</span>
         </div>
       </button>
 
@@ -361,9 +319,7 @@
         <div class="hotspot-line"></div>
         <div class="hotspot-label">
           Primary Granules
-          <span class="hotspot-description">
-            Granule structures with stored enzymes or molecules.
-          </span>
+          <span class="hotspot-description">Granule structures with stored enzymes or molecules.</span>
         </div>
       </button>
 
@@ -374,184 +330,146 @@
       <button id="ar-failure">AR is not tracking!</button>
     </model-viewer>
 
-    <!-- HOTSPOT POSITION TUNER PANEL 
+    <!-- User-facing AR rotation slider -->
+    <div id="ar-rotate-bar">
+      <div class="label">Rotate</div>
+      <input id="ar-rotate" type="range" min="-180" max="180" step="1" value="0" />
+    </div>
+
+    <!-- Hotspot tuner (press T to toggle) -->
     <div id="hotspot-controls">
-      <h3>Hotspot Position Tuner</h3>
+      <h3>Hotspot Position Tuner (press T)</h3>
 
       <div class="hotspot-section" data-hotspot="hotspot-nucleus">
         <strong>Nucleus</strong>
-        <label>
-          X
-          <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
-        </label>
-        <label>
-          Y
-          <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
-        </label>
-        <label>
-          Z
-          <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
-        </label>
+        <label>X <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" /></label>
+        <label>Y <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" /></label>
+        <label>Z <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" /></label>
         <div class="hotspot-readout"></div>
       </div>
 
       <div class="hotspot-section" data-hotspot="hotspot-golgi">
         <strong>Golgi Complex</strong>
-        <label>
-          X
-          <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
-        </label>
-        <label>
-          Y
-          <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
-        </label>
-        <label>
-          Z
-          <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
-        </label>
+        <label>X <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" /></label>
+        <label>Y <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" /></label>
+        <label>Z <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" /></label>
         <div class="hotspot-readout"></div>
       </div>
 
       <div class="hotspot-section" data-hotspot="hotspot-mito">
         <strong>Mitochondrion</strong>
-        <label>
-          X
-          <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
-        </label>
-        <label>
-          Y
-          <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
-        </label>
-        <label>
-          Z
-          <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
-        </label>
+        <label>X <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" /></label>
+        <label>Y <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" /></label>
+        <label>Z <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" /></label>
         <div class="hotspot-readout"></div>
       </div>
 
       <div class="hotspot-section" data-hotspot="hotspot-ribosome">
         <strong>Ribosome</strong>
-        <label>
-          X
-          <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
-        </label>
-        <label>
-          Y
-          <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
-        </label>
-        <label>
-          Z
-          <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
-        </label>
+        <label>X <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" /></label>
+        <label>Y <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" /></label>
+        <label>Z <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" /></label>
         <div class="hotspot-readout"></div>
       </div>
 
       <div class="hotspot-section" data-hotspot="hotspot-granules">
         <strong>Primary Granules</strong>
-        <label>
-          X
-          <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" />
-        </label>
-        <label>
-          Y
-          <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" />
-        </label>
-        <label>
-          Z
-          <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" />
-        </label>
+        <label>X <input type="range" class="hotspot-x" min="-15" max="15" step="0.1" /></label>
+        <label>Y <input type="range" class="hotspot-y" min="-15" max="15" step="0.1" /></label>
+        <label>Z <input type="range" class="hotspot-z" min="-15" max="15" step="0.1" /></label>
         <div class="hotspot-readout"></div>
       </div>
-    </div>-->
+    </div>
 
-<script>
-  window.addEventListener("DOMContentLoaded", () => {
-    const viewer = document.getElementById("cellViewer");
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        const viewer = document.getElementById("cellViewer");
+        const tunerPanel = document.getElementById("hotspot-controls");
+        const arRotate = document.getElementById("ar-rotate");
 
-    function setHotspotPosition(hotspotId, x, y, z) {
-      const el = document.getElementById(hotspotId);
-      if (!el) return;
+        // ---------- helpers ----------
+        const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
-      const slotName = el.getAttribute("slot"); // e.g. "hotspot-nucleus"
-      const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
-
-      // Keep the DOM attribute in sync
-      el.setAttribute("data-position", posString);
-
-      // Actually tell <model-viewer> to move the hotspot in 3D
-      if (viewer && typeof viewer.updateHotspot === "function" && slotName) {
-        viewer.updateHotspot({
-          name: slotName,
-          position: posString,
-        });
-      }
-
-      console.log(`[${hotspotId}] position ->`, posString);
-    }
-
-    function initSection(sectionEl) {
-      const hotspotId = sectionEl.getAttribute("data-hotspot");
-      //const [x0, y0, z0] = initialPositions[hotspotId] || [0, 0, 0];
-
-      const xSlider = sectionEl.querySelector(".hotspot-x");
-      const ySlider = sectionEl.querySelector(".hotspot-y");
-      const zSlider = sectionEl.querySelector(".hotspot-z");
-      const readout = sectionEl.querySelector(".hotspot-readout");
-
-      xSlider.value = x0;
-      ySlider.value = y0;
-      zSlider.value = z0;
-
-      const update = () => {
-        const x = parseFloat(xSlider.value);
-        const y = parseFloat(ySlider.value);
-        const z = parseFloat(zSlider.value);
-
-        setHotspotPosition(hotspotId, x, y, z);
-        readout.textContent = `data-position="${x.toFixed(3)} ${y.toFixed(
-          3
-        )} ${z.toFixed(3)}"`;
-      };
-
-      xSlider.addEventListener("input", update);
-      ySlider.addEventListener("input", update);
-      zSlider.addEventListener("input", update);
-
-      // Initial UI + hotspot position
-      update();
-    }
-
-    function initAllSections() {
-      document
-        .querySelectorAll("#hotspot-controls .hotspot-section")
-        .forEach(initSection);
-    }
-
-    // Wait for the model to load so updateHotspot is valid
-    if (viewer) {
-      viewer.addEventListener("load", () => {
-        initAllSections();
-      }, { once: true });
-    }
-        /* -----------------------
-           HOTSPOT SCALE WITH ZOOM
-           ----------------------- */
-
-        function clamp(value, min, max) {
-          return Math.max(min, Math.min(max, value));
+        function parseDataPosition(el) {
+          // Prefer current DOM attribute (so your pushed values are the source of truth)
+          const raw = (el.getAttribute("data-position") || "").trim();
+          const parts = raw.split(/\s+/).map(Number);
+          if (parts.length === 3 && parts.every((n) => Number.isFinite(n))) return parts;
+          return [0, 0, 0];
         }
 
+        function setHotspotPosition(hotspotId, x, y, z) {
+          const el = document.getElementById(hotspotId);
+          if (!el) return;
+
+          const slotName = el.getAttribute("slot"); // e.g. "hotspot-nucleus"
+          const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
+
+          // Keep DOM in sync
+          el.setAttribute("data-position", posString);
+
+          // Force model-viewer to actually move it (this is the part that matters)
+          if (viewer && typeof viewer.updateHotspot === "function" && slotName) {
+            viewer.updateHotspot({ name: slotName, position: posString });
+          }
+        }
+
+        // ---------- tuner ----------
+        function initSection(sectionEl) {
+          const hotspotId = sectionEl.getAttribute("data-hotspot");
+          const hotspotEl = document.getElementById(hotspotId);
+          if (!hotspotEl) return;
+
+          const [x0, y0, z0] = parseDataPosition(hotspotEl);
+
+          const xSlider = sectionEl.querySelector(".hotspot-x");
+          const ySlider = sectionEl.querySelector(".hotspot-y");
+          const zSlider = sectionEl.querySelector(".hotspot-z");
+          const readout = sectionEl.querySelector(".hotspot-readout");
+
+          xSlider.value = x0;
+          ySlider.value = y0;
+          zSlider.value = z0;
+
+          const update = () => {
+            const x = parseFloat(xSlider.value);
+            const y = parseFloat(ySlider.value);
+            const z = parseFloat(zSlider.value);
+
+            setHotspotPosition(hotspotId, x, y, z);
+            readout.textContent = `data-position="${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}"`;
+          };
+
+          xSlider.addEventListener("input", update);
+          ySlider.addEventListener("input", update);
+          zSlider.addEventListener("input", update);
+
+          // initial apply
+          update();
+        }
+
+        function initAllSections() {
+          document
+            .querySelectorAll("#hotspot-controls .hotspot-section")
+            .forEach(initSection);
+        }
+
+        // Toggle tuner with "T" (desktop)
+        window.addEventListener("keydown", (e) => {
+          if (e.key.toLowerCase() !== "t") return;
+          tunerPanel.classList.toggle("is-open");
+        });
+
+        // ---------- hotspot scale with zoom (3D only) ----------
         function updateHotspotScale() {
           const arStatus = viewer.getAttribute("ar-status");
-          if (arStatus && arStatus !== "not-presenting" && arStatus !== "failed") {
-            return; // let AR CSS override
-          }
+          if (arStatus && arStatus !== "not-presenting" && arStatus !== "failed") return;
 
           const orbit = viewer.getCameraOrbit();
-          const radius = orbit.radius; // smaller = more zoomed in
+          const radius = orbit.radius;
 
-          const minRadius = 4;
-          const maxRadius = 18;
+          const minRadius = 4;   // close
+          const maxRadius = 18;  // far
 
           const t = clamp((radius - minRadius) / (maxRadius - minRadius), 0, 1);
 
@@ -560,21 +478,54 @@
 
           const scale = maxScale - (maxScale - minScale) * t;
 
-          viewer
-            .querySelectorAll(".hotspot")
-            .forEach((el) => el.style.setProperty("--hotspot-scale", scale));
+          viewer.querySelectorAll(".hotspot").forEach((el) => {
+            el.style.setProperty("--hotspot-scale", scale);
+          });
         }
 
-        function initHotspotScaling() {
-          viewer.addEventListener("load", updateHotspotScale, { once: true });
-          viewer.addEventListener("camera-change", updateHotspotScale);
-          // run once just in case
+        // ---------- AR rotation slider ----------
+        // Applies a Y-axis model rotation via the `orientation` attribute.
+        // (Works in the in-page 3D view and in WebXR AR. Scene Viewer / Quick Look behavior may vary.)
+        function applyModelYaw(deg) {
+          // Keep X/Z at 0 so user just spins the model around "up"
+          viewer.setAttribute("orientation", `0deg ${deg}deg 0deg`);
+        }
+
+        arRotate.addEventListener("input", () => {
+          const yaw = parseFloat(arRotate.value);
+          applyModelYaw(yaw);
+        });
+
+        // Reset slider when AR starts/ends (nice UX)
+        viewer.addEventListener("ar-status", () => {
+          const status = viewer.getAttribute("ar-status");
+          if (status === "session-started") {
+            arRotate.value = "0";
+            applyModelYaw(0);
+          }
+          if (status === "not-presenting") {
+            arRotate.value = "0";
+            applyModelYaw(0);
+          }
+        });
+
+        // ---------- init sequencing ----------
+        // updateHotspot is safest after model load.
+        if (viewer.complete) {
+          initAllSections();
           updateHotspotScale();
+        } else {
+          viewer.addEventListener(
+            "load",
+            () => {
+              initAllSections();
+              updateHotspotScale();
+            },
+            { once: true }
+          );
         }
 
-        // Initialize
-        initAllSections();
-        initHotspotScaling();
+        viewer.addEventListener("camera-change", updateHotspotScale);
       });
     </script>
   </body>
