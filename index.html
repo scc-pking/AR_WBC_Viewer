@@ -14,7 +14,7 @@
         height: 100%;
         margin: 0;
         padding: 0;
-        overflow: hidden; /* no page scroll */
+        overflow: hidden;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: #111;
       }
@@ -110,7 +110,7 @@
         left: 10px;
         right: 10px;
         z-index: 10001;
-        display: none; /* show when viewer active */
+        display: none;
         gap: 10px;
         align-items: center;
         justify-content: space-between;
@@ -130,13 +130,14 @@
       }
 
       .menu-btn {
-        appearance: none;
-        border: 1px solid rgba(255,255,255,0.12);
-        background: transparent;
+        pointer-events: auto;
         color: #fff;
+        text-decoration: none;
         font-size: 13px;
         padding: 6px 10px;
         border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: transparent;
         opacity: 0.9;
         cursor: pointer;
       }
@@ -238,7 +239,7 @@
 
       model-viewer[ar-tracking="not-tracking"] > #ar-failure { display: block; }
 
-      /* ===== HOTSPOTS (unchanged) ===== */
+      /* ===== HOTSPOTS ===== */
       .hotspot {
         border: none;
         padding: 0;
@@ -306,7 +307,7 @@
       model-viewer[ar-status="session-started"] .hotspot-line { height: 30px; }
       model-viewer[ar-status="session-started"] .hotspot-description { display: none !important; }
 
-      /* ===== Hotspot tuner panel (unchanged) ===== */
+      /* ===== Hotspot tuner panel ===== */
       #hotspot-controls {
         position: fixed;
         right: 0;
@@ -497,33 +498,31 @@
 
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-        // Same hotspot values as before (kept verbatim)
-        const MODEL_CONFIGS = {
-          neutrophil: {
-            label: "Neutrophil",
-            key: "neutrophil",
-            hotspots: {
-              "hotspot-nucleus":  [-1.300,  2.000, -2.200],
-              "hotspot-golgi":    [ 0.900,  0.600, -0.100],
-              "hotspot-mito":     [ 3.600,  0.200, -3.600],
-              "hotspot-ribosome": [ 2.300, -0.200, -4.300],
-              "hotspot-granules": [-2.900, -1.600,  5.800],
-            }
-          },
-          basophil: {
-            label: "Basophil",
-            key: "basophil",
-            hotspots: {
-              "hotspot-nucleus":  [0.0, 0.0, 0.0],
-              "hotspot-golgi":    [0.0, 0.0, 0.0],
-              "hotspot-mito":     [0.0, 0.0, 0.0],
-              "hotspot-ribosome": [0.0, 0.0, 0.0],
-              "hotspot-granules": [0.0, 0.0, 0.0],
-            }
-          },
+        // Your working hotspot coords (used for BOTH to avoid 0,0,0)
+        const HOTSPOT_PRESET = {
+          "hotspot-nucleus":  [-1.300,  2.000, -2.200],
+          "hotspot-golgi":    [ 0.900,  0.600, -0.100],
+          "hotspot-mito":     [ 3.600,  0.200, -3.600],
+          "hotspot-ribosome": [ 2.300, -0.200, -4.300],
+          "hotspot-granules": [-2.900, -1.600,  5.800],
         };
 
-        // ---- Same-folder discovery (no hardcoded paths) ----
+        const MODEL_CONFIGS = {
+          neutrophil: { label: "Neutrophil", key: "neutrophil", hotspots: HOTSPOT_PRESET },
+          basophil:   { label: "Basophil",   key: "basophil",   hotspots: HOTSPOT_PRESET },
+        };
+
+        function setError(msg) {
+          if (!msg) {
+            errorbox.style.display = "none";
+            errorbox.textContent = "";
+            return;
+          }
+          errorbox.style.display = "block";
+          errorbox.textContent = msg;
+        }
+
+        // Same-folder discovery
         async function urlExists(url) {
           try {
             let r = await fetch(url, { method: "HEAD", cache: "no-store" });
@@ -549,10 +548,6 @@
             `./${lower.replace(/\s+/g, "_")}.${ext}`,
             `./${base.replace(/\s+/g, "-")}.${ext}`,
             `./${lower.replace(/\s+/g, "-")}.${ext}`,
-            `./${base}/${base}.${ext}`,
-            `./${lower}/${lower}.${ext}`,
-            `./${lower}/${base}.${ext}`,
-            `./${base}/${lower}.${ext}`,
           ];
         }
 
@@ -563,44 +558,7 @@
           return null;
         }
 
-        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-
-        function setError(msg) {
-          if (!msg) {
-            errorbox.style.display = "none";
-            errorbox.textContent = "";
-            return;
-          }
-          errorbox.style.display = "block";
-          errorbox.textContent = msg;
-        }
-
-        // ---- Model menu + landing (NO LINKS) ----
-        function buildLanding() {
-          landingGrid.innerHTML = Object.keys(MODEL_CONFIGS).map(k => `
-            <button class="pick" type="button" data-model="${k}">
-              <div class="title">${MODEL_CONFIGS[k].label}</div>
-              <div class="sub">Tap to open</div>
-            </button>
-          `).join("");
-
-          landingGrid.querySelectorAll(".pick").forEach(btn => {
-            btn.addEventListener("click", () => selectModel(btn.getAttribute("data-model")));
-          });
-        }
-
-        function buildModelMenu(activeKey) {
-          modelMenu.innerHTML = Object.keys(MODEL_CONFIGS).map(k => {
-            const cls = k === activeKey ? "menu-btn active" : "menu-btn";
-            return `<button type="button" class="${cls}" data-model="${k}">${MODEL_CONFIGS[k].label}</button>`;
-          }).join("");
-
-          modelMenu.querySelectorAll(".menu-btn").forEach(btn => {
-            btn.addEventListener("click", () => selectModel(btn.getAttribute("data-model")));
-          });
-        }
-
-        // ---- HOTSPOT MOVE (exact working logic preserved) ----
+        // --- EXACT working hotspot update method ---
         function setHotspotPosition(hotspotId, x, y, z) {
           const el = document.getElementById(hotspotId);
           if (!el) return;
@@ -641,7 +599,7 @@
           ySlider.addEventListener("input", update);
           zSlider.addEventListener("input", update);
 
-          update();
+          update(); // apply immediately
         }
 
         function initAllSections(positionsMap) {
@@ -649,30 +607,7 @@
             .forEach(section => initSection(section, positionsMap));
         }
 
-        // Scale hotspots with zoom (non-AR only)
-        function updateHotspotScale() {
-          const arStatus = viewer.getAttribute("ar-status");
-          const inAR = (arStatus && arStatus !== "not-presenting" && arStatus !== "failed");
-          if (inAR) return;
-
-          const orbit = viewer.getCameraOrbit();
-          const radius = orbit.radius;
-
-          const minRadius = 4;
-          const maxRadius = 18;
-          const t = clamp((radius - minRadius) / (maxRadius - minRadius), 0, 1);
-
-          const minScale = 1.0;
-          const maxScale = 2.2;
-          const scale = maxScale - (maxScale - minScale) * t;
-
-          viewer.querySelectorAll(".hotspot")
-            .forEach(el => el.style.setProperty("--hotspot-scale", scale));
-        }
-
-        viewer.addEventListener("camera-change", updateHotspotScale);
-
-        // AR prompt / tracking behavior (unchanged)
+        // AR prompt + rotate (same behavior as your working file)
         let promptTimer = null;
         function schedulePromptHide() {
           if (!arPrompt) return;
@@ -708,17 +643,42 @@
         }
 
         // Tuner toggle
-        tunerToggle.addEventListener("click", () => {
-          tunerPanel.classList.toggle("hidden");
-        });
+        tunerToggle.addEventListener("click", () => tunerPanel.classList.toggle("hidden"));
 
-        // ---- Apply model (SPA) ----
-        let currentKey = null;
+        // Landing + top menu buttons (NO LINKS)
+        function buildLanding() {
+          landingGrid.innerHTML = Object.keys(MODEL_CONFIGS).map(k => `
+            <button class="pick" type="button" data-model="${k}">
+              <div class="title">${MODEL_CONFIGS[k].label}</div>
+              <div class="sub">Open</div>
+            </button>
+          `).join("");
+
+          landingGrid.querySelectorAll(".pick").forEach(btn => {
+            btn.addEventListener("click", () => selectModel(btn.getAttribute("data-model")));
+          });
+        }
+
+        function buildModelMenu(activeKey) {
+          modelMenu.innerHTML = Object.keys(MODEL_CONFIGS).map(k => {
+            const cls = k === activeKey ? "menu-btn active" : "menu-btn";
+            return `<button type="button" class="${cls}" data-model="${k}">${MODEL_CONFIGS[k].label}</button>`;
+          }).join("");
+
+          modelMenu.querySelectorAll(".menu-btn").forEach(btn => {
+            btn.addEventListener("click", () => selectModel(btn.getAttribute("data-model")));
+          });
+        }
+
+        // Hard reset src to guarantee a fresh load event every time
+        function forceSetSrc(glbUrl) {
+          viewer.removeAttribute("src");
+          // next tick forces model-viewer to treat it as a new load
+          requestAnimationFrame(() => viewer.setAttribute("src", glbUrl));
+        }
 
         async function applyModelConfig(key) {
           const cfg = MODEL_CONFIGS[key];
-          currentKey = key;
-
           setError(null);
 
           viewer.style.display = "block";
@@ -727,14 +687,15 @@
 
           buildModelMenu(key);
 
-          // Resolve GLB
           const glb = await resolveFile(cfg.key, "glb");
           if (!glb) {
-            setError(`Model not found in same folder.\n\nSelected: ${cfg.label}\nTried: ${candidatePaths(cfg.key, "glb").join(", ")}`);
+            setError(
+              `Model not found in same folder.\n\nExpected something like:\n` +
+              candidatePaths(cfg.key, "glb").join("\n")
+            );
             return;
           }
 
-          // Resolve USDZ only on iOS (optional)
           if (isIOS) {
             const usdz = await resolveFile(cfg.key, "usdz");
             if (usdz) viewer.setAttribute("ios-src", usdz);
@@ -743,48 +704,35 @@
             viewer.removeAttribute("ios-src");
           }
 
-          // Set src last so load fires for the final chosen file
-          viewer.setAttribute("src", glb);
-
           const onError = (ev) => {
             const detail = ev?.detail ? JSON.stringify(ev.detail) : "";
-            setError(
-              `Model failed to load.\n\nSelected: ${cfg.label}\nSRC: ${glb}\n` +
-              (isIOS ? `iOS-SRC: ${viewer.getAttribute("ios-src") || "(none)"}\n` : "") +
-              `\nEvent detail: ${detail}`
-            );
+            setError(`Model failed to load.\n\nSelected: ${cfg.label}\nSRC: ${glb}\nDetail: ${detail}`);
           };
           viewer.addEventListener("error", onError, { once: true });
 
-          // IMPORTANT: apply hotspots AFTER model loads (same as before)
           viewer.addEventListener("load", () => {
-            Object.entries(cfg.hotspots).forEach(([id, vec]) => {
-              setHotspotPosition(id, vec[0], vec[1], vec[2]);
+            // Apply hotspot positions (twice: immediately and after a frame)
+            Object.entries(cfg.hotspots).forEach(([id, vec]) => setHotspotPosition(id, vec[0], vec[1], vec[2]));
+            requestAnimationFrame(() => {
+              Object.entries(cfg.hotspots).forEach(([id, vec]) => setHotspotPosition(id, vec[0], vec[1], vec[2]));
             });
+
             initAllSections(cfg.hotspots);
-            updateHotspotScale();
           }, { once: true });
+
+          forceSetSrc(glb);
         }
 
         function selectModel(key) {
           if (!MODEL_CONFIGS[key]) return;
-          history.replaceState({}, "", `?model=${encodeURIComponent(key)}`);
           applyModelConfig(key);
         }
 
         // Boot
         buildLanding();
-
-        const params = new URLSearchParams(location.search);
-        const startKey = params.get("model");
-
-        if (startKey && MODEL_CONFIGS[startKey]) {
-          applyModelConfig(startKey);
-        } else {
-          viewer.style.display = "none";
-          topbar.style.display = "none";
-          landing.style.display = "grid";
-        }
+        viewer.style.display = "none";
+        topbar.style.display = "none";
+        landing.style.display = "grid";
       });
     </script>
   </body>
