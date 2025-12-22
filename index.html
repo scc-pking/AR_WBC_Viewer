@@ -101,7 +101,6 @@
       .pick .sub {
         font-size: 12px;
         opacity: 0.80;
-        word-break: break-all;
       }
 
       /* ===== Top nav ===== */
@@ -130,17 +129,19 @@
         backdrop-filter: blur(6px);
       }
 
-      #model-menu a {
+      .menu-btn {
+        appearance: none;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: transparent;
         color: #fff;
-        text-decoration: none;
         font-size: 13px;
         padding: 6px 10px;
         border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.12);
         opacity: 0.9;
+        cursor: pointer;
       }
 
-      #model-menu a.active {
+      .menu-btn.active {
         border-color: rgba(66,133,244,0.9);
         box-shadow: 0 0 0 2px rgba(66,133,244,0.15) inset;
         opacity: 1;
@@ -154,6 +155,7 @@
         border-radius: 999px;
         padding: 8px 12px;
         font-size: 13px;
+        cursor: pointer;
       }
 
       /* ===== Error banner ===== */
@@ -236,7 +238,7 @@
 
       model-viewer[ar-tracking="not-tracking"] > #ar-failure { display: block; }
 
-      /* ===== HOTSPOTS ===== */
+      /* ===== HOTSPOTS (unchanged) ===== */
       .hotspot {
         border: none;
         padding: 0;
@@ -304,7 +306,7 @@
       model-viewer[ar-status="session-started"] .hotspot-line { height: 30px; }
       model-viewer[ar-status="session-started"] .hotspot-description { display: none !important; }
 
-      /* ===== Hotspot tuner panel ===== */
+      /* ===== Hotspot tuner panel (unchanged) ===== */
       #hotspot-controls {
         position: fixed;
         right: 0;
@@ -360,7 +362,7 @@
     <div id="landing">
       <div class="card">
         <h1>Select a cell type</h1>
-        <p>Choose a model to open the viewer. Each option has its own URL via <code>?model=...</code>.</p>
+        <p>Choose a model to open the viewer.</p>
         <div class="grid" id="landing-grid"></div>
       </div>
     </div>
@@ -387,12 +389,11 @@
     >
       <button slot="ar-button" id="ar-button">View in your space</button>
 
-      <!-- AR prompt -->
       <div id="ar-prompt">
         <img src="hand.png" alt="" />
       </div>
 
-      <!-- Hotspots (exact structure preserved) -->
+      <!-- Hotspots -->
       <button id="hotspot-nucleus" slot="hotspot-nucleus" class="hotspot" data-position="0 0 0" data-normal="0 1 0">
         <div class="hotspot-anchor-dot"></div>
         <div class="hotspot-line"></div>
@@ -434,7 +435,7 @@
       </div>
     </div>
 
-    <!-- Hotspot tuner panel (exact structure preserved) -->
+    <!-- Hotspot tuner panel -->
     <div id="hotspot-controls" class="hidden">
       <h3>Hotspot Position Tuner</h3>
 
@@ -496,72 +497,7 @@
 
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-        // SAME-FOLDER model discovery:
-        async function urlExists(url) {
-          try {
-            let r = await fetch(url, { method: "HEAD", cache: "no-store" });
-            if (r.ok) return true;
-            if (r.status === 405 || r.status === 403) {
-              r = await fetch(url, { method: "GET", cache: "no-store" });
-              return r.ok;
-            }
-            return false;
-          } catch {
-            return false;
-          }
-        }
-
-        function candidateGlbPaths(baseName) {
-          const lower = baseName.toLowerCase();
-          return [
-            `./${baseName}.glb`,
-            `./${lower}.glb`,
-            `./${baseName.replace(/\s+/g, "_")}.glb`,
-            `./${lower.replace(/\s+/g, "_")}.glb`,
-            `./${baseName.replace(/\s+/g, "-")}.glb`,
-            `./${lower.replace(/\s+/g, "-")}.glb`,
-            `./${baseName}/${baseName}.glb`,
-            `./${lower}/${lower}.glb`,
-            `./${lower}/${baseName}.glb`,
-            `./${baseName}/${lower}.glb`,
-          ];
-        }
-
-        async function resolveGlbForKey(key) {
-          // key is like "neutrophil" — try common filename variants in same folder
-          const candidates = candidateGlbPaths(key);
-          for (const c of candidates) {
-            if (await urlExists(c)) return c;
-          }
-          // also try using label-case (Neutrophil)
-          const titled = key.charAt(0).toUpperCase() + key.slice(1);
-          const candidates2 = candidateGlbPaths(titled);
-          for (const c of candidates2) {
-            if (await urlExists(c)) return c;
-          }
-          return null;
-        }
-
-        async function resolveUsdzForKey(key) {
-          // only used on iOS; try same-folder variants
-          const lower = key.toLowerCase();
-          const titled = key.charAt(0).toUpperCase() + key.slice(1);
-          const candidates = [
-            `./${key}.usdz`,
-            `./${lower}.usdz`,
-            `./${titled}.usdz`,
-            `./${key.replace(/\s+/g, "_")}.usdz`,
-            `./${lower.replace(/\s+/g, "_")}.usdz`,
-            `./${key.replace(/\s+/g, "-")}.usdz`,
-            `./${lower.replace(/\s+/g, "-")}.usdz`,
-          ];
-          for (const c of candidates) {
-            if (await urlExists(c)) return c;
-          }
-          return null;
-        }
-
-        // Keep your hotspot coordinates EXACTLY as provided
+        // Same hotspot values as before (kept verbatim)
         const MODEL_CONFIGS = {
           neutrophil: {
             label: "Neutrophil",
@@ -587,6 +523,46 @@
           },
         };
 
+        // ---- Same-folder discovery (no hardcoded paths) ----
+        async function urlExists(url) {
+          try {
+            let r = await fetch(url, { method: "HEAD", cache: "no-store" });
+            if (r.ok) return true;
+            if (r.status === 405 || r.status === 403) {
+              r = await fetch(url, { method: "GET", cache: "no-store" });
+              return r.ok;
+            }
+            return false;
+          } catch {
+            return false;
+          }
+        }
+
+        function candidatePaths(base, ext) {
+          const lower = base.toLowerCase();
+          const titled = base.charAt(0).toUpperCase() + base.slice(1);
+          return [
+            `./${base}.${ext}`,
+            `./${lower}.${ext}`,
+            `./${titled}.${ext}`,
+            `./${base.replace(/\s+/g, "_")}.${ext}`,
+            `./${lower.replace(/\s+/g, "_")}.${ext}`,
+            `./${base.replace(/\s+/g, "-")}.${ext}`,
+            `./${lower.replace(/\s+/g, "-")}.${ext}`,
+            `./${base}/${base}.${ext}`,
+            `./${lower}/${lower}.${ext}`,
+            `./${lower}/${base}.${ext}`,
+            `./${base}/${lower}.${ext}`,
+          ];
+        }
+
+        async function resolveFile(base, ext) {
+          for (const p of candidatePaths(base, ext)) {
+            if (await urlExists(p)) return p;
+          }
+          return null;
+        }
+
         function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
         function setError(msg) {
@@ -599,42 +575,32 @@
           errorbox.textContent = msg;
         }
 
-        function getSelectedModelKey() {
-          const params = new URLSearchParams(location.search);
-          const key = params.get("model");
-          return MODEL_CONFIGS[key] ? key : null;
-        }
-
-        function urlWithModel(key) {
-          const url = new URL(location.href);
-          url.searchParams.set("model", key);
-          return url.toString();
-        }
-
+        // ---- Model menu + landing (NO LINKS) ----
         function buildLanding() {
           landingGrid.innerHTML = Object.keys(MODEL_CONFIGS).map(k => `
             <button class="pick" type="button" data-model="${k}">
               <div class="title">${MODEL_CONFIGS[k].label}</div>
-              <div class="sub">${urlWithModel(k)}</div>
+              <div class="sub">Tap to open</div>
             </button>
           `).join("");
 
           landingGrid.querySelectorAll(".pick").forEach(btn => {
-            btn.addEventListener("click", () => {
-              const key = btn.getAttribute("data-model");
-              location.href = urlWithModel(key);
-            });
+            btn.addEventListener("click", () => selectModel(btn.getAttribute("data-model")));
           });
         }
 
         function buildModelMenu(activeKey) {
           modelMenu.innerHTML = Object.keys(MODEL_CONFIGS).map(k => {
-            return `<a href="${urlWithModel(k)}" class="${k === activeKey ? "active" : ""}">${MODEL_CONFIGS[k].label}</a>`;
+            const cls = k === activeKey ? "menu-btn active" : "menu-btn";
+            return `<button type="button" class="${cls}" data-model="${k}">${MODEL_CONFIGS[k].label}</button>`;
           }).join("");
+
+          modelMenu.querySelectorAll(".menu-btn").forEach(btn => {
+            btn.addEventListener("click", () => selectModel(btn.getAttribute("data-model")));
+          });
         }
 
-        // HOTSPOT UPDATE (preserved):
-        // update data-position then replace node with clone so model-viewer reliably re-reads it.
+        // ---- HOTSPOT MOVE (exact working logic preserved) ----
         function setHotspotPosition(hotspotId, x, y, z) {
           const el = document.getElementById(hotspotId);
           if (!el) return;
@@ -674,6 +640,7 @@
           xSlider.addEventListener("input", update);
           ySlider.addEventListener("input", update);
           zSlider.addEventListener("input", update);
+
           update();
         }
 
@@ -705,23 +672,18 @@
 
         viewer.addEventListener("camera-change", updateHotspotScale);
 
-        // AR prompt: show briefly then hide; hide immediately once tracking
+        // AR prompt / tracking behavior (unchanged)
         let promptTimer = null;
         function schedulePromptHide() {
           if (!arPrompt) return;
           if (promptTimer) clearTimeout(promptTimer);
-          promptTimer = setTimeout(() => {
-            arPrompt.style.display = "none";
-          }, 1200);
+          promptTimer = setTimeout(() => { arPrompt.style.display = "none"; }, 1200);
         }
 
         viewer.addEventListener("ar-status", (e) => {
           const status = e.detail.status;
           if (status === "session-started") {
-            if (arPrompt) {
-              arPrompt.style.display = "block";
-              schedulePromptHide();
-            }
+            if (arPrompt) { arPrompt.style.display = "block"; schedulePromptHide(); }
             if (arRotateSlider) {
               arRotateSlider.value = "0";
               viewer.setAttribute("orientation", "0deg 0deg 0deg");
@@ -734,11 +696,10 @@
         });
 
         viewer.addEventListener("ar-tracking", (e) => {
-          const tracking = e.detail.status; // "tracking" / "not-tracking"
+          const tracking = e.detail.status;
           if (tracking === "tracking" && arPrompt) arPrompt.style.display = "none";
         });
 
-        // AR rotate slider -> yaw via orientation
         if (arRotateSlider) {
           arRotateSlider.addEventListener("input", () => {
             const deg = parseFloat(arRotateSlider.value);
@@ -751,38 +712,40 @@
           tunerPanel.classList.toggle("hidden");
         });
 
-        // Load model config (no defaults; only if selected)
+        // ---- Apply model (SPA) ----
+        let currentKey = null;
+
         async function applyModelConfig(key) {
           const cfg = MODEL_CONFIGS[key];
+          currentKey = key;
 
           setError(null);
 
-          // make viewer visible
           viewer.style.display = "block";
           topbar.style.display = "flex";
           landing.style.display = "none";
 
-          // Resolve GLB in SAME folder (discovery)
-          const glb = await resolveGlbForKey(cfg.key);
+          buildModelMenu(key);
+
+          // Resolve GLB
+          const glb = await resolveFile(cfg.key, "glb");
           if (!glb) {
-            setError(
-              `Model not found in same folder.\n\nSelected: ${cfg.label}\nTried: ${candidateGlbPaths(cfg.key).join(", ")}`
-            );
+            setError(`Model not found in same folder.\n\nSelected: ${cfg.label}\nTried: ${candidatePaths(cfg.key, "glb").join(", ")}`);
             return;
           }
 
-          viewer.setAttribute("src", glb);
-
-          // iOS only: set ios-src if a matching USDZ exists
+          // Resolve USDZ only on iOS (optional)
           if (isIOS) {
-            const usdz = await resolveUsdzForKey(cfg.key);
+            const usdz = await resolveFile(cfg.key, "usdz");
             if (usdz) viewer.setAttribute("ios-src", usdz);
             else viewer.removeAttribute("ios-src");
           } else {
             viewer.removeAttribute("ios-src");
           }
 
-          // If the model fails, show it clearly
+          // Set src last so load fires for the final chosen file
+          viewer.setAttribute("src", glb);
+
           const onError = (ev) => {
             const detail = ev?.detail ? JSON.stringify(ev.detail) : "";
             setError(
@@ -791,10 +754,9 @@
               `\nEvent detail: ${detail}`
             );
           };
-
           viewer.addEventListener("error", onError, { once: true });
 
-          // When the model loads, apply hotspots + init tuner
+          // IMPORTANT: apply hotspots AFTER model loads (same as before)
           viewer.addEventListener("load", () => {
             Object.entries(cfg.hotspots).forEach(([id, vec]) => {
               setHotspotPosition(id, vec[0], vec[1], vec[2]);
@@ -804,20 +766,25 @@
           }, { once: true });
         }
 
+        function selectModel(key) {
+          if (!MODEL_CONFIGS[key]) return;
+          history.replaceState({}, "", `?model=${encodeURIComponent(key)}`);
+          applyModelConfig(key);
+        }
+
         // Boot
         buildLanding();
 
-        const activeKey = getSelectedModelKey();
-        if (!activeKey) {
-          // Landing mode (no auto-load)
+        const params = new URLSearchParams(location.search);
+        const startKey = params.get("model");
+
+        if (startKey && MODEL_CONFIGS[startKey]) {
+          applyModelConfig(startKey);
+        } else {
           viewer.style.display = "none";
           topbar.style.display = "none";
           landing.style.display = "grid";
-          return;
         }
-
-        buildModelMenu(activeKey);
-        applyModelConfig(activeKey);
       });
     </script>
   </body>
