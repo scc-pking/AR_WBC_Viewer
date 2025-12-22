@@ -5,147 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Cell AR Viewer</title>
 
-    <script
-      type="module"
-      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
-    ></script>
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
     <style>
       :not(:defined) > * { display: none; }
+      html, body { height: 100%; margin: 0; background:#111; color:#fff; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
 
-      html, body {
-        height: 100%;
-        margin: 0;
-        background: #111;
-        color: #fff;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      }
+      #landing { height:100%; display:grid; place-items:center; padding:24px; }
+      .card { width:min(720px,100%); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:18px; }
+      h1 { margin:0 0 6px 0; font-size:22px; }
+      p { margin:0 0 14px 0; color:rgba(255,255,255,.75); }
 
-      /* Landing */
-      #landing {
-        height: 100%;
-        display: grid;
-        place-items: center;
-        padding: 24px;
-      }
+      .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+      button { cursor:pointer; border:0; border-radius:14px; padding:14px 12px; font-weight:800; background:rgba(255,255,255,.14); color:#fff; }
+      button:hover { background:rgba(255,255,255,.22); }
 
-      .card {
-        width: min(720px, 100%);
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 18px;
-        padding: 18px;
-      }
+      #viewer { height:100%; display:none; position:relative; }
+      model-viewer { position:absolute; inset:0; width:100%; height:100%; background:#111; }
 
-      h1 {
-        margin: 0 0 6px 0;
-        font-size: 22px;
-        font-weight: 700;
-      }
-
-      p {
-        margin: 0 0 14px 0;
-        color: rgba(255,255,255,0.75);
-        line-height: 1.35;
-      }
-
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 12px;
-      }
-
-      button {
-        cursor: pointer;
-        border: 0;
-        border-radius: 14px;
-        padding: 14px 12px;
-        font-weight: 700;
-        background: rgba(255,255,255,0.14);
-        color: #fff;
-      }
-      button:hover { background: rgba(255,255,255,0.22); }
-
-      /* Viewer container */
-      #viewer {
-        height: 100%;
-        display: none; /* shown after selection */
-        position: relative;
-      }
-
-      model-viewer {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        background: #111;
-      }
-
-      /* Top bar */
       #topbar {
-        position: absolute;
-        top: 12px;
-        left: 12px;
-        right: 12px;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        z-index: 10;
-        pointer-events: none; /* allow clicks to pass through except buttons */
+        position:absolute; top:12px; left:12px; right:12px;
+        display:flex; gap:10px; align-items:center; z-index:10;
+        pointer-events:none;
       }
-
       #topbar .pill {
-        pointer-events: auto;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: 999px;
-        background: rgba(0,0,0,0.55);
-        border: 1px solid rgba(255,255,255,0.14);
+        pointer-events:auto;
+        display:inline-flex; align-items:center; gap:10px;
+        padding:10px 12px; border-radius:999px;
+        background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.14);
         backdrop-filter: blur(8px);
       }
-
-      #cellLabel {
-        font-weight: 800;
-        letter-spacing: 0.2px;
-      }
-
+      #cellLabel { font-weight:900; }
       #backBtn {
-        pointer-events: auto;
-        padding: 10px 12px;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.14);
-        border: 1px solid rgba(255,255,255,0.12);
-        color: #fff;
-        font-weight: 800;
+        pointer-events:auto;
+        padding:10px 12px; border-radius:999px;
+        background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.12);
+        color:#fff; font-weight:900;
       }
 
-      /* Loading / error overlay */
       #status {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 9;
-        background: rgba(0,0,0,0.55);
-        border: 1px solid rgba(255,255,255,0.14);
-        border-radius: 14px;
-        padding: 12px 14px;
-        min-width: 220px;
-        text-align: center;
-        backdrop-filter: blur(8px);
-        display: none;
+        position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+        z-index:9; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.14);
+        border-radius:14px; padding:12px 14px; min-width:260px; text-align:center;
+        backdrop-filter: blur(8px); display:none;
       }
-      #status small { color: rgba(255,255,255,0.75); }
+      #status small { color:rgba(255,255,255,.75); display:block; margin-top:6px; word-break:break-word; }
 
-      /* Optional: nicer AR button slot */
       #ar-button {
         background: rgba(255,255,255,0.14);
         border: 1px solid rgba(255,255,255,0.14);
         border-radius: 999px;
         color: #fff;
-        font-weight: 800;
+        font-weight: 900;
         padding: 12px 16px;
       }
     </style>
@@ -156,7 +67,7 @@
     <section id="landing">
       <div class="card">
         <h1>Select a cell type</h1>
-        <p>Nothing loads until you choose. This prevents immediate load failures on page open.</p>
+        <p>Models are discovered in the same folder as this HTML file (no hardcoded paths).</p>
 
         <div class="grid">
           <button data-cell="Basophil">Basophil</button>
@@ -172,121 +83,147 @@
     <section id="viewer">
       <div id="topbar">
         <button id="backBtn">← Back</button>
-        <div class="pill">
-          <span id="cellLabel">—</span>
-        </div>
+        <div class="pill"><span id="cellLabel">—</span></div>
       </div>
 
       <div id="status">
-        <div id="statusTitle" style="font-weight: 800; margin-bottom: 4px;">Loading…</div>
-        <small id="statusDetail">Fetching model</small>
+        <div id="statusTitle" style="font-weight:900;">Loading…</div>
+        <small id="statusDetail"></small>
       </div>
 
-      <!-- model-viewer is injected here on selection -->
       <div id="mvMount"></div>
     </section>
 
     <script type="module">
-      // ✅ Define your model paths here (edit to match YOUR folder structure)
-      // If you have USDZ for iOS, add ios: ".../model.usdz". If not, omit ios.
-      const CELL_MODELS = {
-        Basophil:   { glb: basophil.glb },
-        Neutrophil: { glb: neutrophil.glb },
-        Eosinophil: { glb: eosinophil.glb },
-        Lymphocyte: { glb: lymphocyte.glb },
-        Monocyte:   { glb: monocyte.glb },
-      };
-
       const landing = document.getElementById("landing");
       const viewer = document.getElementById("viewer");
       const mvMount = document.getElementById("mvMount");
       const cellLabel = document.getElementById("cellLabel");
       const backBtn = document.getElementById("backBtn");
+
       const status = document.getElementById("status");
       const statusTitle = document.getElementById("statusTitle");
       const statusDetail = document.getElementById("statusDetail");
 
       let modelViewerEl = null;
 
-      function showStatus(title, detail) {
+      function showStatus(title, detail = "") {
         statusTitle.textContent = title;
-        statusDetail.textContent = detail || "";
+        statusDetail.textContent = detail;
         status.style.display = "block";
       }
-      function hideStatus() {
-        status.style.display = "none";
-      }
+      function hideStatus() { status.style.display = "none"; }
 
       function destroyViewer() {
-        if (modelViewerEl) {
-          modelViewerEl.remove();
-          modelViewerEl = null;
-        }
+        if (modelViewerEl) modelViewerEl.remove();
+        modelViewerEl = null;
         mvMount.innerHTML = "";
       }
 
-      function createViewer({ glb, ios }, label) {
+      // ---- File discovery helpers ----
+
+      // Generate likely filenames in SAME folder as index.html
+      function candidateGlbPaths(cellName) {
+        const lower = cellName.toLowerCase();
+        // Add/remove patterns here based on how you actually name files.
+        return [
+          `${cellName}.glb`,
+          `${lower}.glb`,
+          `${cellName.replace(/\s+/g, "_")}.glb`,
+          `${lower.replace(/\s+/g, "_")}.glb`,
+          `${cellName.replace(/\s+/g, "-")}.glb`,
+          `${lower.replace(/\s+/g, "-")}.glb`,
+
+          // Some people keep each model in its own folder next to index.html:
+          `${cellName}/${cellName}.glb`,
+          `${lower}/${lower}.glb`,
+          `${lower}/${cellName}.glb`,
+          `${cellName}/${lower}.glb`,
+        ];
+      }
+
+      async function urlExists(url) {
+        // Prefer HEAD; some hosts block HEAD so fallback to GET
+        try {
+          const r = await fetch(url, { method: "HEAD", cache: "no-store" });
+          if (r.ok) return true;
+          // if HEAD not allowed, try GET
+          if (r.status === 405 || r.status === 403) {
+            const r2 = await fetch(url, { method: "GET", cache: "no-store" });
+            return r2.ok;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      }
+
+      async function resolveModelUrl(cellName) {
+        const candidates = candidateGlbPaths(cellName);
+
+        // show which file we’re currently probing (helps debug quickly)
+        for (const c of candidates) {
+          showStatus("Finding model…", c);
+          const ok = await urlExists(c);
+          if (ok) return c;
+        }
+        return null;
+      }
+
+      function createViewer(glbUrl, label) {
         destroyViewer();
 
-        // Create model-viewer only now (prevents default auto-load)
         modelViewerEl = document.createElement("model-viewer");
-        modelViewerEl.setAttribute("src", glb);
-
-        // If you have USDZ, use it. If you don't, DO NOT set ios-src.
-        if (ios) modelViewerEl.setAttribute("ios-src", ios);
-
+        modelViewerEl.setAttribute("src", glbUrl);
         modelViewerEl.setAttribute("alt", `${label} 3D model`);
         modelViewerEl.setAttribute("ar", "");
         modelViewerEl.setAttribute("camera-controls", "");
         modelViewerEl.setAttribute("touch-action", "pan-y");
         modelViewerEl.setAttribute("shadow-intensity", "1");
 
-        // Optional: add a nicer AR button via slot
         const arBtn = document.createElement("button");
         arBtn.setAttribute("slot", "ar-button");
         arBtn.id = "ar-button";
         arBtn.textContent = "View in your space";
         modelViewerEl.appendChild(arBtn);
 
-        // Status handling
-        showStatus("Loading…", glb);
+        showStatus("Loading model…", glbUrl);
 
-        modelViewerEl.addEventListener("load", () => {
-          hideStatus();
-        });
-
+        modelViewerEl.addEventListener("load", () => hideStatus());
         modelViewerEl.addEventListener("error", (e) => {
-          // This will catch "loadfailure" too.
-          // Show something useful instead of a blank screen.
           console.log("model-viewer error:", e);
-          showStatus("Load failed", "Check model path / CORS / server headers");
+          showStatus("Load failed", `model-viewer couldn't load: ${glbUrl}`);
         });
 
         mvMount.appendChild(modelViewerEl);
       }
 
-      function openCell(cellName) {
-        const entry = CELL_MODELS[cellName];
-        if (!entry) return;
-
+      async function openCell(cellName) {
         cellLabel.textContent = cellName;
-
         landing.style.display = "none";
         viewer.style.display = "block";
 
-        createViewer(entry, cellName);
+        // 1) Discover the correct GLB URL in same folder
+        const glbUrl = await resolveModelUrl(cellName);
+
+        if (!glbUrl) {
+          showStatus("Model not found", `No matching .glb found for "${cellName}" in this folder.`);
+          return;
+        }
+
+        // 2) Only now create model-viewer and load it
+        createViewer(glbUrl, cellName);
       }
 
       function goBack() {
         viewer.style.display = "none";
         landing.style.display = "grid";
-        destroyViewer(); // optional: frees memory and stops any pending loads
+        destroyViewer();
         hideStatus();
         cellLabel.textContent = "—";
       }
 
-      // Landing button clicks
-      landing.querySelectorAll("button[data-cell]").forEach((btn) => {
+      landing.querySelectorAll("button[data-cell]").forEach(btn => {
         btn.addEventListener("click", () => openCell(btn.dataset.cell));
       });
 
