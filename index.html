@@ -17,7 +17,7 @@
       p { margin:0 0 14px 0; color:rgba(255,255,255,.75); }
 
       .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
-      button { cursor:pointer; border:0; border-radius:14px; padding:14px 12px; font-weight:800; background:rgba(255,255,255,.14); color:#fff; }
+      button { cursor:pointer; border:0; border-radius:14px; padding:14px 12px; font-weight:900; background:rgba(255,255,255,.14); color:#fff; }
       button:hover { background:rgba(255,255,255,.22); }
 
       #viewer { height:100%; display:none; position:relative; }
@@ -45,8 +45,9 @@
 
       #status {
         position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-        z-index:9; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.14);
-        border-radius:14px; padding:12px 14px; min-width:260px; text-align:center;
+        z-index:999;
+        background:rgba(0,0,0,.65); border:1px solid rgba(255,255,255,.14);
+        border-radius:14px; padding:12px 14px; min-width:280px; text-align:center;
         backdrop-filter: blur(8px); display:none;
       }
       #status small { color:rgba(255,255,255,.75); display:block; margin-top:6px; word-break:break-word; }
@@ -67,14 +68,14 @@
     <section id="landing">
       <div class="card">
         <h1>Select a cell type</h1>
-        <p>Models are discovered in the same folder as this HTML file (no hardcoded paths).</p>
+        <p>Models are discovered in the same folder as this file.</p>
 
         <div class="grid">
-          <button data-cell="Basophil">Basophil</button>
-          <button data-cell="Neutrophil">Neutrophil</button>
-          <button data-cell="Eosinophil">Eosinophil</button>
-          <button data-cell="Lymphocyte">Lymphocyte</button>
-          <button data-cell="Monocyte">Monocyte</button>
+          <button onclick="openCell('Basophil')">Basophil</button>
+          <button onclick="openCell('Neutrophil')">Neutrophil</button>
+          <button onclick="openCell('Eosinophil')">Eosinophil</button>
+          <button onclick="openCell('Lymphocyte')">Lymphocyte</button>
+          <button onclick="openCell('Monocyte')">Monocyte</button>
         </div>
       </div>
     </section>
@@ -82,24 +83,23 @@
     <!-- VIEWER -->
     <section id="viewer">
       <div id="topbar">
-        <button id="backBtn">← Back</button>
+        <button id="backBtn" onclick="goBack()">← Back</button>
         <div class="pill"><span id="cellLabel">—</span></div>
       </div>
 
       <div id="status">
-        <div id="statusTitle" style="font-weight:900;">Loading…</div>
+        <div id="statusTitle" style="font-weight:900;">—</div>
         <small id="statusDetail"></small>
       </div>
 
       <div id="mvMount"></div>
     </section>
 
-    <script type="module">
+    <script>
       const landing = document.getElementById("landing");
       const viewer = document.getElementById("viewer");
       const mvMount = document.getElementById("mvMount");
       const cellLabel = document.getElementById("cellLabel");
-      const backBtn = document.getElementById("backBtn");
 
       const status = document.getElementById("status");
       const statusTitle = document.getElementById("statusTitle");
@@ -120,12 +120,8 @@
         mvMount.innerHTML = "";
       }
 
-      // ---- File discovery helpers ----
-
-      // Generate likely filenames in SAME folder as index.html
       function candidateGlbPaths(cellName) {
         const lower = cellName.toLowerCase();
-        // Add/remove patterns here based on how you actually name files.
         return [
           `${cellName}.glb`,
           `${lower}.glb`,
@@ -134,7 +130,6 @@
           `${cellName.replace(/\s+/g, "-")}.glb`,
           `${lower.replace(/\s+/g, "-")}.glb`,
 
-          // Some people keep each model in its own folder next to index.html:
           `${cellName}/${cellName}.glb`,
           `${lower}/${lower}.glb`,
           `${lower}/${cellName}.glb`,
@@ -143,25 +138,24 @@
       }
 
       async function urlExists(url) {
-        // Prefer HEAD; some hosts block HEAD so fallback to GET
         try {
-          const r = await fetch(url, { method: "HEAD", cache: "no-store" });
+          // Try HEAD first
+          let r = await fetch(url, { method: "HEAD", cache: "no-store" });
           if (r.ok) return true;
-          // if HEAD not allowed, try GET
+
+          // If blocked, try GET
           if (r.status === 405 || r.status === 403) {
-            const r2 = await fetch(url, { method: "GET", cache: "no-store" });
-            return r2.ok;
+            r = await fetch(url, { method: "GET", cache: "no-store" });
+            return r.ok;
           }
           return false;
-        } catch {
+        } catch (e) {
           return false;
         }
       }
 
       async function resolveModelUrl(cellName) {
         const candidates = candidateGlbPaths(cellName);
-
-        // show which file we’re currently probing (helps debug quickly)
         for (const c of candidates) {
           showStatus("Finding model…", c);
           const ok = await urlExists(c);
@@ -190,44 +184,39 @@
         showStatus("Loading model…", glbUrl);
 
         modelViewerEl.addEventListener("load", () => hideStatus());
-        modelViewerEl.addEventListener("error", (e) => {
-          console.log("model-viewer error:", e);
+        modelViewerEl.addEventListener("error", () => {
           showStatus("Load failed", `model-viewer couldn't load: ${glbUrl}`);
         });
 
         mvMount.appendChild(modelViewerEl);
       }
 
-      async function openCell(cellName) {
+      // Expose globally for inline onclick
+      window.openCell = async function (cellName) {
+        // If you click and STILL see nothing, JS isn't running at all.
+        console.log("openCell clicked:", cellName);
+
         cellLabel.textContent = cellName;
         landing.style.display = "none";
         viewer.style.display = "block";
+        showStatus("Starting…", "Preparing discovery");
 
-        // 1) Discover the correct GLB URL in same folder
         const glbUrl = await resolveModelUrl(cellName);
-
         if (!glbUrl) {
-          showStatus("Model not found", `No matching .glb found for "${cellName}" in this folder.`);
+          showStatus("Model not found", `No matching .glb found for "${cellName}" next to index.html.`);
           return;
         }
 
-        // 2) Only now create model-viewer and load it
         createViewer(glbUrl, cellName);
-      }
+      };
 
-      function goBack() {
+      window.goBack = function () {
         viewer.style.display = "none";
         landing.style.display = "grid";
         destroyViewer();
         hideStatus();
         cellLabel.textContent = "—";
-      }
-
-      landing.querySelectorAll("button[data-cell]").forEach(btn => {
-        btn.addEventListener("click", () => openCell(btn.dataset.cell));
-      });
-
-      backBtn.addEventListener("click", goBack);
+      };
     </script>
   </body>
 </html>
