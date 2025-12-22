@@ -14,7 +14,7 @@
         height: 100%;
         margin: 0;
         padding: 0;
-        overflow: hidden;
+        overflow: hidden; /* no page scroll */
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: #111;
       }
@@ -81,7 +81,7 @@
         border: 1px solid rgba(255,255,255,0.12);
         background: rgba(255,255,255,0.04);
         border-radius: 14px;
-        padding: 12px 12px;
+        padding: 14px 14px;
         color: #fff;
         text-align: left;
         transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
@@ -95,12 +95,7 @@
 
       .pick .title {
         font-weight: 650;
-        margin-bottom: 4px;
-      }
-
-      .pick .sub {
-        font-size: 12px;
-        opacity: 0.80;
+        margin: 0;
       }
 
       /* ===== Top nav ===== */
@@ -110,7 +105,7 @@
         left: 10px;
         right: 10px;
         z-index: 10001;
-        display: none;
+        display: none; /* show when viewer active */
         gap: 10px;
         align-items: center;
         justify-content: space-between;
@@ -129,20 +124,17 @@
         backdrop-filter: blur(6px);
       }
 
-      .menu-btn {
-        pointer-events: auto;
+      #model-menu a {
         color: #fff;
         text-decoration: none;
         font-size: 13px;
         padding: 6px 10px;
         border-radius: 999px;
         border: 1px solid rgba(255,255,255,0.12);
-        background: transparent;
         opacity: 0.9;
-        cursor: pointer;
       }
 
-      .menu-btn.active {
+      #model-menu a.active {
         border-color: rgba(66,133,244,0.9);
         box-shadow: 0 0 0 2px rgba(66,133,244,0.15) inset;
         opacity: 1;
@@ -156,7 +148,6 @@
         border-radius: 999px;
         padding: 8px 12px;
         font-size: 13px;
-        cursor: pointer;
       }
 
       /* ===== Error banner ===== */
@@ -498,8 +489,8 @@
 
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-        // Your working hotspot coords (used for BOTH to avoid 0,0,0)
-        const HOTSPOT_PRESET = {
+        // Your non-zero hotspot values (from the script you provided)
+        const HOTSPOT_POSITIONS = {
           "hotspot-nucleus":  [-1.300,  2.000, -2.200],
           "hotspot-golgi":    [ 0.900,  0.600, -0.100],
           "hotspot-mito":     [ 3.600,  0.200, -3.600],
@@ -508,8 +499,17 @@
         };
 
         const MODEL_CONFIGS = {
-          neutrophil: { label: "Neutrophil", key: "neutrophil", hotspots: HOTSPOT_PRESET },
-          basophil:   { label: "Basophil",   key: "basophil",   hotspots: HOTSPOT_PRESET },
+          neutrophil: {
+            label: "Neutrophil",
+            base: "neutrophil",
+            // IMPORTANT: use the same values so it is not stuck at origin
+            hotspots: HOTSPOT_POSITIONS
+          },
+          basophil: {
+            label: "Basophil",
+            base: "basophil",
+            hotspots: HOTSPOT_POSITIONS
+          },
         };
 
         function setError(msg) {
@@ -522,7 +522,7 @@
           errorbox.textContent = msg;
         }
 
-        // Same-folder discovery
+        // ===== Same-folder discovery (simple + reliable) =====
         async function urlExists(url) {
           try {
             let r = await fetch(url, { method: "HEAD", cache: "no-store" });
@@ -537,28 +537,19 @@
           }
         }
 
-        function candidatePaths(base, ext) {
-          const lower = base.toLowerCase();
-          const titled = base.charAt(0).toUpperCase() + base.slice(1);
-          return [
+        async function resolveModelUrl(base, ext) {
+          const cands = [
             `./${base}.${ext}`,
-            `./${lower}.${ext}`,
-            `./${titled}.${ext}`,
-            `./${base.replace(/\s+/g, "_")}.${ext}`,
-            `./${lower.replace(/\s+/g, "_")}.${ext}`,
-            `./${base.replace(/\s+/g, "-")}.${ext}`,
-            `./${lower.replace(/\s+/g, "-")}.${ext}`,
+            `./${base.toLowerCase()}.${ext}`,
+            `./${base.charAt(0).toUpperCase() + base.slice(1)}.${ext}`,
           ];
-        }
-
-        async function resolveFile(base, ext) {
-          for (const p of candidatePaths(base, ext)) {
-            if (await urlExists(p)) return p;
+          for (const c of cands) {
+            if (await urlExists(c)) return c;
           }
           return null;
         }
 
-        // --- EXACT working hotspot update method ---
+        // ===== THIS is the exact "working" hotspot update method =====
         function setHotspotPosition(hotspotId, x, y, z) {
           const el = document.getElementById(hotspotId);
           if (!el) return;
@@ -566,6 +557,7 @@
           const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
           el.setAttribute("data-position", posString);
 
+          // model-viewer reliably re-reads after node replacement
           const parent = el.parentNode;
           if (parent) {
             const clone = el.cloneNode(true);
@@ -574,10 +566,19 @@
           }
         }
 
-        function initSection(sectionEl, positionsMap) {
-          const hotspotId = sectionEl.getAttribute("data-hotspot");
-          const vec = positionsMap[hotspotId] || [0, 0, 0];
+        function applyHotspotsNow(positionsMap) {
+          for (const [id, vec] of Object.entries(positionsMap)) {
+            setHotspotPosition(id, vec[0], vec[1], vec[2]);
+          }
+          // Do it again next frame so it sticks even if model-viewer initializes hotspots late
+          requestAnimationFrame(() => {
+            for (const [id, vec] of Object.entries(positionsMap)) {
+              setHotspotPosition(id, vec[0], vec[1], vec[2]);
+            }
+          });
+        }
 
+        function setSectionUI(sectionEl, vec) {
           const xSlider = sectionEl.querySelector(".hotspot-x");
           const ySlider = sectionEl.querySelector(".hotspot-y");
           const zSlider = sectionEl.querySelector(".hotspot-z");
@@ -586,39 +587,79 @@
           xSlider.value = vec[0];
           ySlider.value = vec[1];
           zSlider.value = vec[2];
-
-          const update = () => {
-            const x = parseFloat(xSlider.value);
-            const y = parseFloat(ySlider.value);
-            const z = parseFloat(zSlider.value);
-            setHotspotPosition(hotspotId, x, y, z);
-            readout.textContent = `data-position="${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}"`;
-          };
-
-          xSlider.addEventListener("input", update);
-          ySlider.addEventListener("input", update);
-          zSlider.addEventListener("input", update);
-
-          update(); // apply immediately
+          readout.textContent = `data-position="${vec[0].toFixed(3)} ${vec[1].toFixed(3)} ${vec[2].toFixed(3)}"`;
         }
 
-        function initAllSections(positionsMap) {
-          document.querySelectorAll("#hotspot-controls .hotspot-section")
-            .forEach(section => initSection(section, positionsMap));
+        function initTunerFromPositions(positionsMap) {
+          document.querySelectorAll("#hotspot-controls .hotspot-section").forEach(section => {
+            const hotspotId = section.getAttribute("data-hotspot");
+            const vec = positionsMap[hotspotId] || [0,0,0];
+            setSectionUI(section, vec);
+          });
         }
 
-        // AR prompt + rotate (same behavior as your working file)
+        // ===== Fix for "tuner stops working": event delegation =====
+        // Even if the hotspot node gets cloned/replaced, sliders still drive setHotspotPosition live.
+        document.getElementById("hotspot-controls").addEventListener("input", (e) => {
+          const target = e.target;
+          if (!(target instanceof HTMLInputElement)) return;
+          if (target.type !== "range") return;
+
+          const section = target.closest(".hotspot-section");
+          if (!section) return;
+
+          const hotspotId = section.getAttribute("data-hotspot");
+          const x = parseFloat(section.querySelector(".hotspot-x").value);
+          const y = parseFloat(section.querySelector(".hotspot-y").value);
+          const z = parseFloat(section.querySelector(".hotspot-z").value);
+
+          setHotspotPosition(hotspotId, x, y, z);
+
+          const readout = section.querySelector(".hotspot-readout");
+          readout.textContent = `data-position="${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}"`;
+        });
+
+        // ===== Landing: NO links, NO "Open", only cell name =====
+        function buildLanding() {
+          landingGrid.innerHTML = Object.keys(MODEL_CONFIGS).map(k => `
+            <button class="pick" type="button" data-model="${k}">
+              <div class="title">${MODEL_CONFIGS[k].label}</div>
+            </button>
+          `).join("");
+
+          landingGrid.querySelectorAll(".pick").forEach(btn => {
+            btn.addEventListener("click", () => selectModel(btn.getAttribute("data-model")));
+          });
+        }
+
+        // Keep your top menu (it’s already in your script). No landing links.
+        function buildModelMenu(activeKey) {
+          modelMenu.innerHTML = Object.keys(MODEL_CONFIGS).map(k => {
+            return `<a href="javascript:void(0)" data-model="${k}" class="${k === activeKey ? "active" : ""}">${MODEL_CONFIGS[k].label}</a>`;
+          }).join("");
+
+          modelMenu.querySelectorAll("a").forEach(a => {
+            a.addEventListener("click", () => selectModel(a.getAttribute("data-model")));
+          });
+        }
+
+        // ===== AR prompt behavior (unchanged) =====
         let promptTimer = null;
         function schedulePromptHide() {
           if (!arPrompt) return;
           if (promptTimer) clearTimeout(promptTimer);
-          promptTimer = setTimeout(() => { arPrompt.style.display = "none"; }, 1200);
+          promptTimer = setTimeout(() => {
+            arPrompt.style.display = "none";
+          }, 1200);
         }
 
         viewer.addEventListener("ar-status", (e) => {
           const status = e.detail.status;
           if (status === "session-started") {
-            if (arPrompt) { arPrompt.style.display = "block"; schedulePromptHide(); }
+            if (arPrompt) {
+              arPrompt.style.display = "block";
+              schedulePromptHide();
+            }
             if (arRotateSlider) {
               arRotateSlider.value = "0";
               viewer.setAttribute("orientation", "0deg 0deg 0deg");
@@ -642,43 +683,17 @@
           });
         }
 
-        // Tuner toggle
-        tunerToggle.addEventListener("click", () => tunerPanel.classList.toggle("hidden"));
+        // ===== Tuner toggle =====
+        tunerToggle.addEventListener("click", () => {
+          tunerPanel.classList.toggle("hidden");
+        });
 
-        // Landing + top menu buttons (NO LINKS)
-        function buildLanding() {
-          landingGrid.innerHTML = Object.keys(MODEL_CONFIGS).map(k => `
-            <button class="pick" type="button" data-model="${k}">
-              <div class="title">${MODEL_CONFIGS[k].label}</div>
-              <div class="sub">Open</div>
-            </button>
-          `).join("");
-
-          landingGrid.querySelectorAll(".pick").forEach(btn => {
-            btn.addEventListener("click", () => selectModel(btn.getAttribute("data-model")));
-          });
-        }
-
-        function buildModelMenu(activeKey) {
-          modelMenu.innerHTML = Object.keys(MODEL_CONFIGS).map(k => {
-            const cls = k === activeKey ? "menu-btn active" : "menu-btn";
-            return `<button type="button" class="${cls}" data-model="${k}">${MODEL_CONFIGS[k].label}</button>`;
-          }).join("");
-
-          modelMenu.querySelectorAll(".menu-btn").forEach(btn => {
-            btn.addEventListener("click", () => selectModel(btn.getAttribute("data-model")));
-          });
-        }
-
-        // Hard reset src to guarantee a fresh load event every time
-        function forceSetSrc(glbUrl) {
-          viewer.removeAttribute("src");
-          // next tick forces model-viewer to treat it as a new load
-          requestAnimationFrame(() => viewer.setAttribute("src", glbUrl));
-        }
+        let currentKey = null;
 
         async function applyModelConfig(key) {
           const cfg = MODEL_CONFIGS[key];
+          currentKey = key;
+
           setError(null);
 
           viewer.style.display = "block";
@@ -687,40 +702,35 @@
 
           buildModelMenu(key);
 
-          const glb = await resolveFile(cfg.key, "glb");
+          const glb = await resolveModelUrl(cfg.base, "glb");
           if (!glb) {
-            setError(
-              `Model not found in same folder.\n\nExpected something like:\n` +
-              candidatePaths(cfg.key, "glb").join("\n")
-            );
+            setError(`Model not found next to index.html.\nExpected: ${cfg.base}.glb`);
             return;
           }
 
+          // iOS only: set ios-src if present
           if (isIOS) {
-            const usdz = await resolveFile(cfg.key, "usdz");
+            const usdz = await resolveModelUrl(cfg.base, "usdz");
             if (usdz) viewer.setAttribute("ios-src", usdz);
             else viewer.removeAttribute("ios-src");
           } else {
             viewer.removeAttribute("ios-src");
           }
 
-          const onError = (ev) => {
+          // Force reload so load event fires every time
+          viewer.removeAttribute("src");
+          requestAnimationFrame(() => viewer.setAttribute("src", glb));
+
+          viewer.addEventListener("error", (ev) => {
             const detail = ev?.detail ? JSON.stringify(ev.detail) : "";
-            setError(`Model failed to load.\n\nSelected: ${cfg.label}\nSRC: ${glb}\nDetail: ${detail}`);
-          };
-          viewer.addEventListener("error", onError, { once: true });
-
-          viewer.addEventListener("load", () => {
-            // Apply hotspot positions (twice: immediately and after a frame)
-            Object.entries(cfg.hotspots).forEach(([id, vec]) => setHotspotPosition(id, vec[0], vec[1], vec[2]));
-            requestAnimationFrame(() => {
-              Object.entries(cfg.hotspots).forEach(([id, vec]) => setHotspotPosition(id, vec[0], vec[1], vec[2]));
-            });
-
-            initAllSections(cfg.hotspots);
+            setError(`Model failed to load.\nSelected: ${cfg.label}\nSRC: ${glb}\n${detail}`);
           }, { once: true });
 
-          forceSetSrc(glb);
+          // When model loads, apply hotspots + initialize tuner UI + apply again
+          viewer.addEventListener("load", () => {
+            applyHotspotsNow(cfg.hotspots);
+            initTunerFromPositions(cfg.hotspots);
+          }, { once: true });
         }
 
         function selectModel(key) {
@@ -730,6 +740,8 @@
 
         // Boot
         buildLanding();
+
+        // start on landing, no auto-load
         viewer.style.display = "none";
         topbar.style.display = "none";
         landing.style.display = "grid";
