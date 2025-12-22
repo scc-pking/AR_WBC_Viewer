@@ -12,8 +12,8 @@
       html, body { height: 100%; margin: 0; background:#111; color:#fff; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
 
       #landing { height:100%; display:grid; place-items:center; padding:24px; }
-      .card { width:min(720px,100%); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:18px; }
-      h1 { margin:0 0 6px 0; font-size:22px; }
+      .card { width:min(760px,100%); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:18px; }
+      h1 { margin:0 0 6px 0; font-size:22px; font-weight:900; }
       p { margin:0 0 14px 0; color:rgba(255,255,255,.75); }
 
       .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
@@ -60,6 +60,32 @@
         font-weight: 900;
         padding: 12px 16px;
       }
+
+      /* Hotspots */
+      .hotspot {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.95);
+        border: 2px solid rgba(0,0,0,0.55);
+        box-sizing: border-box;
+      }
+
+      .annotation {
+        position: absolute;
+        transform: translate(14px, -50%);
+        background: rgba(0,0,0,0.65);
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 10px;
+        padding: 8px 10px;
+        min-width: 160px;
+        max-width: 240px;
+        pointer-events: none;
+        backdrop-filter: blur(8px);
+      }
+      .annotation b { display:block; margin-bottom: 2px; }
+      .annotation small { color: rgba(255,255,255,0.8); line-height: 1.25; }
+      .annotation[hidden] { display:none; }
     </style>
   </head>
 
@@ -68,7 +94,7 @@
     <section id="landing">
       <div class="card">
         <h1>Select a cell type</h1>
-        <p>Models are discovered in the same folder as this file.</p>
+        <p>Models are discovered in the same folder as this file. Hotspots load with the model.</p>
 
         <div class="grid">
           <button onclick="openCell('Basophil')">Basophil</button>
@@ -120,6 +146,7 @@
         mvMount.innerHTML = "";
       }
 
+      // --- Discovery (same-folder) ---
       function candidateGlbPaths(cellName) {
         const lower = cellName.toLowerCase();
         return [
@@ -129,7 +156,6 @@
           `${lower.replace(/\s+/g, "_")}.glb`,
           `${cellName.replace(/\s+/g, "-")}.glb`,
           `${lower.replace(/\s+/g, "-")}.glb`,
-
           `${cellName}/${cellName}.glb`,
           `${lower}/${lower}.glb`,
           `${lower}/${cellName}.glb`,
@@ -139,17 +165,14 @@
 
       async function urlExists(url) {
         try {
-          // Try HEAD first
           let r = await fetch(url, { method: "HEAD", cache: "no-store" });
           if (r.ok) return true;
-
-          // If blocked, try GET
           if (r.status === 405 || r.status === 403) {
             r = await fetch(url, { method: "GET", cache: "no-store" });
             return r.ok;
           }
           return false;
-        } catch (e) {
+        } catch {
           return false;
         }
       }
@@ -164,25 +187,99 @@
         return null;
       }
 
-      function createViewer(glbUrl, label) {
+      // --- Hotspot presets (edit these) ---
+      // IMPORTANT: These positions are placeholders.
+      // Replace with your real hotspot coordinates (data-position, data-normal).
+      const HOTSPOTS = {
+        default: [
+          {
+            id: "hs1",
+            title: "Nucleus",
+            desc: "Genetic control center",
+            position: "0m 0.02m 0.06m",
+            normal: "0m 1m 0m",
+          },
+          {
+            id: "hs2",
+            title: "Membrane",
+            desc: "Cell boundary",
+            position: "0.06m 0.00m 0.00m",
+            normal: "1m 0m 0m",
+          },
+        ],
+        Neutrophil: [
+          {
+            id: "hs1",
+            title: "Multi-lobed nucleus",
+            desc: "Segmented nucleus typical of neutrophils",
+            position: "0m 0.015m 0.05m",
+            normal: "0m 1m 0m",
+          },
+          {
+            id: "hs2",
+            title: "Granules",
+            desc: "Enzymes + antimicrobial proteins",
+            position: "0.05m 0.00m -0.01m",
+            normal: "1m 0m 0m",
+          },
+        ],
+      };
+
+      function getHotspotsForCell(cellName) {
+        return HOTSPOTS[cellName] || HOTSPOTS.default;
+      }
+
+      function createViewer(glbUrl, cellName) {
         destroyViewer();
 
         modelViewerEl = document.createElement("model-viewer");
         modelViewerEl.setAttribute("src", glbUrl);
-        modelViewerEl.setAttribute("alt", `${label} 3D model`);
+        modelViewerEl.setAttribute("alt", `${cellName} 3D model`);
         modelViewerEl.setAttribute("ar", "");
         modelViewerEl.setAttribute("camera-controls", "");
         modelViewerEl.setAttribute("touch-action", "pan-y");
         modelViewerEl.setAttribute("shadow-intensity", "1");
 
+        // AR button
         const arBtn = document.createElement("button");
         arBtn.setAttribute("slot", "ar-button");
         arBtn.id = "ar-button";
         arBtn.textContent = "View in your space";
         modelViewerEl.appendChild(arBtn);
 
-        showStatus("Loading model…", glbUrl);
+        // Hotspots
+        const hotspots = getHotspotsForCell(cellName);
+        for (const hs of hotspots) {
+          const btn = document.createElement("button");
+          btn.className = "hotspot";
+          btn.setAttribute("slot", `hotspot-${hs.id}`);
+          btn.setAttribute("data-position", hs.position);
+          btn.setAttribute("data-normal", hs.normal);
+          btn.setAttribute("aria-label", hs.title);
 
+          const ann = document.createElement("div");
+          ann.className = "annotation";
+          ann.hidden = true;
+          ann.innerHTML = `<b>${hs.title}</b><small>${hs.desc}</small>`;
+
+          btn.appendChild(ann);
+
+          // Click toggles its own annotation; closes others
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            modelViewerEl.querySelectorAll(".annotation").forEach(a => a.hidden = true);
+            ann.hidden = !ann.hidden;
+          });
+
+          modelViewerEl.appendChild(btn);
+        }
+
+        // Click empty space closes all annotations
+        modelViewerEl.addEventListener("click", () => {
+          modelViewerEl.querySelectorAll(".annotation").forEach(a => a.hidden = true);
+        });
+
+        showStatus("Loading model…", glbUrl);
         modelViewerEl.addEventListener("load", () => hideStatus());
         modelViewerEl.addEventListener("error", () => {
           showStatus("Load failed", `model-viewer couldn't load: ${glbUrl}`);
@@ -191,15 +288,10 @@
         mvMount.appendChild(modelViewerEl);
       }
 
-      // Expose globally for inline onclick
       window.openCell = async function (cellName) {
-        // If you click and STILL see nothing, JS isn't running at all.
-        console.log("openCell clicked:", cellName);
-
         cellLabel.textContent = cellName;
         landing.style.display = "none";
         viewer.style.display = "block";
-        showStatus("Starting…", "Preparing discovery");
 
         const glbUrl = await resolveModelUrl(cellName);
         if (!glbUrl) {
