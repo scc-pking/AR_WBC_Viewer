@@ -746,15 +746,10 @@
 
           // Re-init after load (updateHotspot safest after load)
           viewer.addEventListener("load", () => {
+            applyHotspotPresetFor(activeKey);
             initAllSections();
             updateHotspotScale();
           }, { once: true });
-
-            viewer.addEventListener("load", () => {
-                applyHotspotPresetFor(activeKey);
-                initAllSections();
-                updateHotspotScale();
-            }, { once: true });
 
           viewer.addEventListener("error", (ev) => {
             const detail = ev?.detail ? JSON.stringify(ev.detail) : "";
