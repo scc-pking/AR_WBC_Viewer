@@ -17,7 +17,7 @@
         padding: 0;
         width: 100%;
         height: 100%;
-        overflow: hidden; /* kill page scroll */
+        overflow: hidden;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: #111;
       }
@@ -29,7 +29,7 @@
         height: 100dvh;
         background-color: #111;
         overflow: hidden;
-        display: none; /* hidden until a model is selected */
+        display: none;
       }
 
       /* ===== Landing ===== */
@@ -59,7 +59,7 @@
       #landing h1 {
         margin: 0 0 8px;
         font-size: 20px;
-        font-weight: 650;
+        font-weight: 700;
         letter-spacing: 0.2px;
       }
 
@@ -89,7 +89,7 @@
         color: #fff;
         text-align: left;
         transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
-        font-weight: 650;
+        font-weight: 700;
       }
 
       .pick:hover {
@@ -547,6 +547,7 @@
           { key: "neutrophil", label: "Neutrophil", glb: "./neutrophil.glb", usdz: "./neutrophil.usdz" },
           { key: "basophil",   label: "Basophil",   glb: "./basophil.glb",   usdz: "./basophil.usdz" },
           { key: "eosinophil", label: "Eosinophil", glb: "./eosinophil.glb", usdz: "./eosinophil.usdz" },
+          { key: "monocyte",   label: "Monocyte",   glb: "./monocyte.glb",   usdz: "./monocyte.usdz"},
         ];
 
         const HOTSPOT_PRESETS = {
@@ -573,6 +574,13 @@
                 "hotspot-ribosome": [4.700, -2.400, -0.600],
                 "hotspot-granules": [-2.900, -1.600, 5.800],
               },
+            monocyte: {
+                "hotspot-nucleus": [-1.300, 2.000, -2.200],
+                "hotspot-golgi": [0.900, 0.600, -0.100],
+                "hotspot-mito": [3.600, 0.200, -3.600],
+                "hotspot-ribosome": [4.700, -2.400, -0.600],
+                "hotspot-granules": [-2.900, -1.600, 5.800],
+            }
           };
 
         let activeKey = null;
