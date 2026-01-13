@@ -551,6 +551,17 @@
           { key: "lymphocyte", label: "Lymphocyte", glb: "./lymphocyte.glb", usdz: "./lymphocyte.usdz" },
         ];
 
+          const HOTSPOTS_ALL = ["hotspot-nucleus", "hotspot-golgi", "hotspot-mito", "hotspot-ribosome", "hotspot-granules"];
+
+          const HOTSPOTS_ENABLED = {
+              neutrophil: ["hotspot-nucleus", "hotspot-golgi", "hotspot-mito", "hotspot-ribosome", "hotspot-granules"],
+              basophil: ["hotspot-nucleus", "hotspot-golgi", "hotspot-mito", "hotspot-ribosome", "hotspot-granules"],
+              eosinophil: ["hotspot-nucleus", "hotspot-golgi", "hotspot-mito", "hotspot-ribosome", "hotspot-granules"],
+              monocyte: ["hotspot-nucleus", "hotspot-golgi", "hotspot-mito", "hotspot-ribosome", "hotspot-granules"],
+              lymphocyte: ["hotspot-nucleus", "hotspot-golgi", "hotspot-mito", "hotspot-ribosome"], // no granules
+          };
+
+
         const HOTSPOT_PRESETS = {
             neutrophil: {
                 "hotspot-nucleus": [-1.300, 2.000, -2.200],
@@ -584,9 +595,9 @@
             },
             lymphocyte: {
                 "hotspot-nucleus": [-1.300, 2.000, -2.200],
-                "hotspot-golgi": [0.900, 0.600, -0.100],
-                "hotspot-mito": [3.600, 0.200, -3.600],
-                "hotspot-ribosome": [5.100, -0.800, -3.100],
+                "hotspot-golgi": [-0.200, 1.900, -6.200],
+                "hotspot-mito": [3.500, -0.100, -5.600],
+                "hotspot-ribosome": [3.500, -2.100, -6.500],
             }
           };
 
@@ -616,7 +627,7 @@
           const el = document.getElementById(hotspotId);
           if (!el) return;
 
-          const slotName = el.getAttribute("slot"); // e.g. "hotspot-nucleus"
+          const slotName = el.getAttribute("slot");
           const posString = `${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`;
 
           el.setAttribute("data-position", posString);
@@ -627,13 +638,25 @@
         }
 
           function applyHotspotPresetFor(key) {
-              const preset = HOTSPOT_PRESETS[key];
-              if (!preset) return;
+              const preset = HOTSPOT_PRESETS[key] || {};
+              const enabled = new Set(HOTSPOTS_ENABLED[key] || HOTSPOTS_ALL);
 
               Object.entries(preset).forEach(([hotspotId, xyz]) => {
+                  if (!enabled.has(hotspotId)) return;
                   const [x, y, z] = xyz;
                   setHotspotPosition(hotspotId, x, y, z);
               });
+          }
+
+          function setHotspotVisible(hotspotId, visible) {
+              const el = document.getElementById(hotspotId);
+              if (!el) return;
+              el.style.display = visible ? "" : "none";
+          }
+
+          function applyHotspotVisibilityFor(key) {
+              const enabled = new Set(HOTSPOTS_ENABLED[key] || []);
+              HOTSPOTS_ALL.forEach(id => setHotspotVisible(id, enabled.has(id)));
           }
 
         // ---------- tuner ----------
@@ -669,11 +692,16 @@
           update();
         }
 
-        function initAllSections() {
-          document
-            .querySelectorAll("#hotspot-controls .hotspot-section")
-            .forEach(initSection);
-        }
+          function initAllSections() {
+              document.querySelectorAll("#hotspot-controls .hotspot-section").forEach(section => {
+                  const hotspotId = section.getAttribute("data-hotspot");
+                  const el = document.getElementById(hotspotId);
+                  const visible = el && el.style.display !== "none";
+
+                  section.style.display = visible ? "" : "none";
+                  if (visible) initSection(section);
+              });
+          }
 
         // Toggle tuner with on-screen button
         tunerToggle.addEventListener("click", () => {
@@ -741,7 +769,9 @@
           if (!m) return;
 
           setError(null);
-          activeKey = key;
+            activeKey = key;
+
+          applyHotspotVisibilityFor(activeKey);
 
           // Show viewer UI
           landing.style.display = "none";
